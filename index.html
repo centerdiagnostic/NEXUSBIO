@@ -598,6 +598,8 @@
                             <div class="space-y-4 bg-slate-50/50 p-4 rounded-xl border border-slate-200">
                                 <h3 class="text-xs font-bold text-brand-700 uppercase tracking-widest border-b border-brand-100 pb-2 mb-4">Storage & Inventory</h3>
                                 
+                                <div><label class="block text-xs font-bold text-slate-600 mb-1">Storage Room</label><input type="text" name="storageRoom" id="field_storageRoom" list="list_storage_room" autocomplete="off" placeholder="e.g. Molecular Lab 201" class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none font-bold text-slate-800"></div>
+                                <div><label class="block text-xs font-bold text-slate-600 mb-1">Refrigerator / Freezer</label><input type="text" name="storageFridge" id="field_storageFridge" list="list_storage_fridge" autocomplete="off" placeholder="e.g. Freezer A (-20°C)" class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none font-bold text-slate-800"></div>
                                 <div><label class="block text-xs font-bold text-slate-600 mb-1">Box Name <span class="text-red-500">*</span></label><input type="text" name="box" id="form_box" list="list_box_options" required class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none font-bold text-slate-800"><span id="box_error" class="error-text hidden">กรุณาระบุชื่อกล่องก่อนเลือกพิกัด Slot</span></div>
                                 
                                 <div>
@@ -754,6 +756,8 @@
                                 <th id="th-category" class="px-4 py-3 text-center">Category</th>
                                 <th class="px-4 py-3 text-center">Animal</th>
                                 <th class="px-4 py-3 text-center">Name</th>
+                                <th class="px-4 py-3 text-center">Room</th>
+                                <th class="px-4 py-3 text-center">Fridge/Freezer</th>
                                 <th class="px-4 py-3 text-center">Box/Slot</th>
                                 <th class="px-4 py-3 text-center">Vol.</th>
                                 <th id="th-actions" class="px-4 py-3 text-right">Actions</th>
@@ -776,12 +780,17 @@
         <!-- STORAGE VIEW -->
         <div id="view-storage" class="hidden">
             <div class="lab-card p-6 flex flex-col h-full">
-                <div class="flex flex-col md:flex-row justify-between mb-6 gap-4 items-center border-b pb-4">
-                    <div>
+                <div class="flex flex-col md:flex-row md:flex-wrap justify-between mb-6 gap-4 items-center border-b pb-4">
+                    <div class="md:flex-1 md:min-w-[16rem]">
                         <h2 class="text-lg font-bold text-slate-800">Storage Map</h2>
-                        <p class="text-xs text-slate-500">Select a box to view grid layout.</p>
+                        <p class="text-xs text-slate-500">Select a room, refrigerator / freezer and box to view grid layout.</p>
                     </div>
-                    <select id="mapSelectBox" onchange="renderBoxMap()" class="w-full md:w-64 rounded-lg border-slate-300 border p-2 text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-brand-500"></select>
+                    <div class="flex flex-col md:flex-row md:flex-wrap gap-2 w-full md:w-auto">
+                        <select id="mapSelectRoom" onchange="onMapLocationChange()" class="w-full md:w-52 rounded-lg border-slate-300 border p-2 text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-brand-500"><option value="">All Rooms</option></select>
+                        <select id="mapSelectFridge" onchange="onMapLocationChange()" class="w-full md:w-64 rounded-lg border-slate-300 border p-2 text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-brand-500"><option value="">All Refrigerators / Freezers</option></select>
+                        <select id="mapSelectBox" onchange="renderBoxMap()" class="w-full md:w-64 rounded-lg border-slate-300 border p-2 text-sm font-bold shadow-sm outline-none focus:ring-2 focus:ring-brand-500"></select>
+                        <button type="button" id="btn-set-box-location" onclick="openBoxLocationModal()" style="display:none" class="px-3 py-2 text-xs font-bold text-white bg-brand-600 rounded-lg hover:bg-brand-700 shadow-sm whitespace-nowrap">Set Box Location</button>
+                    </div>
                 </div>
                 <div class="flex flex-col lg:flex-row gap-8 items-start">
                     <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-inner overflow-x-auto w-full max-w-2xl">
@@ -945,6 +954,32 @@
                 </div>
             </div>
         </div>
+
+        <!-- Box Location Modal -->
+        <div id="boxLocationModal" class="fixed inset-0 z-[9999] hidden items-center justify-center p-4">
+            <div class="absolute inset-0 bg-slate-900/60 backdrop-blur-sm"></div>
+            <div class="relative bg-white w-full max-w-md max-h-[90vh] overflow-y-auto custom-scrollbar rounded-2xl p-6 text-left shadow-2xl animate-in zoom-in-95">
+                <h3 class="font-bold text-lg mb-2 text-slate-800">Set Box Location</h3>
+                <div class="flex items-center justify-between mb-2">
+                    <span class="text-xs font-bold text-slate-600">Boxes</span>
+                    <div class="flex gap-1">
+                        <button type="button" onclick="setAllBoxLocationChecks(true)" class="px-2 py-1 text-xs font-bold text-brand-600 rounded hover:bg-brand-50">Select All</button>
+                        <button type="button" onclick="setAllBoxLocationChecks(false)" class="px-2 py-1 text-xs font-bold text-slate-500 rounded hover:bg-slate-100">Clear</button>
+                    </div>
+                </div>
+                <div id="boxLoc_list" class="max-h-64 overflow-y-auto custom-scrollbar border border-slate-200 rounded-lg divide-y divide-slate-100"></div>
+                <p id="boxLoc_summary" class="text-xs font-bold text-slate-600 mt-2 mb-4"></p>
+                <div class="space-y-3">
+                    <div><label class="block text-xs font-bold text-slate-600 mb-1">Storage Room</label><input type="text" id="boxLoc_room" list="list_storage_room" autocomplete="off" placeholder="e.g. Molecular Lab 201" class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none font-bold text-slate-800"></div>
+                    <div><label class="block text-xs font-bold text-slate-600 mb-1">Refrigerator / Freezer</label><input type="text" id="boxLoc_fridge" list="list_storage_fridge" autocomplete="off" placeholder="e.g. Freezer A (-20°C)" class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none font-bold text-slate-800"></div>
+                </div>
+                <p class="text-[11px] text-slate-400 mt-2 mb-6">Leave a field blank to keep its current value.</p>
+                <div class="flex gap-3">
+                    <button type="button" onclick="closeBoxLocationModal()" class="flex-1 py-2.5 bg-slate-100 rounded-lg font-bold text-slate-600 hover:bg-slate-200">Cancel</button>
+                    <button type="button" id="confirmBoxLocationBtn" onclick="saveBoxLocation()" class="flex-1 py-2.5 bg-brand-600 text-white rounded-lg font-bold hover:bg-brand-700 shadow-md disabled:opacity-50 disabled:cursor-not-allowed">Apply</button>
+                </div>
+            </div>
+        </div>
     </main>
 
     <!-- Sequence Edit Modal -->
@@ -978,13 +1013,15 @@
     <datalist id="list_disease"></datalist>
     <datalist id="list_company"></datalist>
     <datalist id="list_box_options"></datalist>
+    <datalist id="list_storage_room"></datalist>
+    <datalist id="list_storage_fridge"></datalist>
 
 </div>
 
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-    import { getFirestore, collection, addDoc, setDoc, updateDoc, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, query, orderBy, limit } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, setDoc, updateDoc, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, query, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
     // --- CONFIGURATION ---
@@ -1045,6 +1082,8 @@
                 const btnProbe = document.getElementById('btn-new-probe');
                 if(btnPrimer) btnPrimer.style.display = canEdit ? 'flex' : 'none';
                 if(btnProbe) btnProbe.style.display = canEdit ? 'flex' : 'none';
+                const btnBoxLoc = document.getElementById('btn-set-box-location');
+                if(btnBoxLoc) btnBoxLoc.style.display = canEdit ? '' : 'none';
                 
                 const navAdminBtn = document.getElementById('navAdminBtn');
                 if(navAdminBtn) {
@@ -1525,6 +1564,8 @@
                 ${showCategory ? `<td class="px-4 py-3 text-center whitespace-nowrap">${categoryBadge}</td>` : ''}
                 <td class="px-4 py-3 text-center"><span class="badge badge-gray text-[9px] border border-slate-200">${item.animaltype || '-'}</span></td>
                 <td class="px-4 py-3 text-center font-semibold text-brand-800">${displayMainName} <span class="text-[10px] text-slate-400 font-normal block">${item.species || ''}</span>${expBadge}</td>
+                <td class="px-4 py-3 text-center text-[10px] font-semibold text-slate-600 whitespace-nowrap">${item.storageroom || '-'}</td>
+                <td class="px-4 py-3 text-center text-[10px] font-semibold text-slate-600 whitespace-nowrap">${item.storagefridge || '-'}</td>
                 <td class="px-4 py-3 text-center whitespace-nowrap"><span class="badge ${boxSlotStyle} border text-[10px] font-mono">${boxSlotDisplay}</span></td>
                 <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${volColorClass}">${displayVol || 0}</span></td>
                 ${(activeTab !== 'all' && activeTab !== 'export') ? `<td class="px-4 py-3 text-right" onclick="event.stopPropagation();">${actionBtns}</td>` : ''}
@@ -1904,7 +1945,7 @@
     };
 
     window.setFieldsStatus = function(isMovement) {
-        const all = ['field_orderDate', 'field_animalType', 'field_species', 'field_disease', 'field_primerName', 'field_originalName', 'field_probe', 'field_fluorescent', 'field_targetGene', 'field_method', 'field_forward', 'field_Reward', 'field_company', 'field_lotNumber', 'field_expiryDate', 'field_ta', 'field_productSize', 'field_box', 'field_usageCount', 'field_reference', 'field_lowLevel', 'field_sampleType', 'field_folderNo', 'field_result', 'field_seqResult', 'field_remark']; 
+        const all = ['field_orderDate', 'field_animalType', 'field_species', 'field_disease', 'field_primerName', 'field_originalName', 'field_probe', 'field_fluorescent', 'field_targetGene', 'field_method', 'field_forward', 'field_Reward', 'field_company', 'field_lotNumber', 'field_expiryDate', 'field_ta', 'field_productSize', 'field_storageRoom', 'field_storageFridge', 'field_box', 'field_usageCount', 'field_reference', 'field_lowLevel', 'field_sampleType', 'field_folderNo', 'field_result', 'field_seqResult', 'field_remark']; 
         all.forEach(id => {     
             const el = document.getElementById(id) || document.getElementById(id.replace('field_', 'form_')); 
             if (!el) return;
@@ -1997,6 +2038,8 @@
             if(k === 'slot') { if(v) newItem.slot.push(v); }
             else if(k !== 'id') { newItem[k.toLowerCase()] = v; }
         });
+        if (newItem.storageroom) newItem.storageroom = newItem.storageroom.trim();
+        if (newItem.storagefridge) newItem.storagefridge = newItem.storagefridge.trim();
 
         // ดักจับชื่อไฟล์และแปลงเป็น Base64
         const fileInput = document.getElementById('field_attachment');
@@ -2041,7 +2084,7 @@
             newItem.usagecount = parseInt(document.getElementById('field_usageCount').value || 0);
         }
 
-        const labelsMap = { 'orderdate': 'Ordered Date', 'animaltype': 'Animal Type', 'species': 'Species', 'disease': 'Disease', 'primername': 'Name', 'originalname': 'Original Name', 'probe': 'Probe Seq', 'fluorescent': 'Fluorescent', 'targetgene': 'Target Gene', 'method': 'Method', 'forward': 'Forward', 'reward': 'Reward', 'company': 'Company', 'lotnumber': 'Lot No.', 'expirydate': 'Exp. Date', 'ta': 'TA', 'productsize': 'Size', 'box': 'Box', 'slot': 'Slot', 'volume': 'Volume', 'lowlevel': 'Low Level', 'sampletype': 'Sample Type', 'folderno': 'Nucleic Acid Type', 'result': 'Result', 'seqresult': 'Seq Result', 'remark': 'Remark' };
+        const labelsMap = { 'orderdate': 'Ordered Date', 'animaltype': 'Animal Type', 'species': 'Species', 'disease': 'Disease', 'primername': 'Name', 'originalname': 'Original Name', 'probe': 'Probe Seq', 'fluorescent': 'Fluorescent', 'targetgene': 'Target Gene', 'method': 'Method', 'forward': 'Forward', 'reward': 'Reward', 'company': 'Company', 'lotnumber': 'Lot No.', 'expirydate': 'Exp. Date', 'ta': 'TA', 'productsize': 'Size', 'storageroom': 'Storage Room', 'storagefridge': 'Refrigerator / Freezer', 'box': 'Box', 'slot': 'Slot', 'volume': 'Volume', 'lowlevel': 'Low Level', 'sampletype': 'Sample Type', 'folderno': 'Nucleic Acid Type', 'result': 'Result', 'seqresult': 'Seq Result', 'remark': 'Remark' };
 
         try {
             if (curId) {
@@ -2218,7 +2261,7 @@
     window.populateForm = function(item) {
         document.getElementById('editingId').value = item.id;
         document.getElementById('field_itemType').value = item.itemtype || 'PRIMER';
-        const map = { 'orderDate': 'orderdate', 'animalType': 'animaltype', 'species': 'species', 'disease': 'disease', 'primerName': 'primername', 'originalName': 'originalname', 'probe': 'probe', 'fluorescent': 'fluorescent', 'targetGene': 'targetgene', 'method': 'method', 'forward': 'forward', 'Reward': 'reward', 'company': 'company', 'lotNumber': 'lotnumber', 'expiryDate': 'expirydate', 'ta': 'ta', 'productSize': 'productsize', 'box': 'box', 'volume': 'volume', 'reference': 'reference', 'usageCount': 'usagecount', 'lowLevel': 'lowlevel', 'sampleType': 'sampletype', 'folderNo': 'folderno', 'result': 'result', 'seqResult': 'seqresult', 'remark': 'remark' }; 
+        const map = { 'orderDate': 'orderdate', 'animalType': 'animaltype', 'species': 'species', 'disease': 'disease', 'primerName': 'primername', 'originalName': 'originalname', 'probe': 'probe', 'fluorescent': 'fluorescent', 'targetGene': 'targetgene', 'method': 'method', 'forward': 'forward', 'Reward': 'reward', 'company': 'company', 'lotNumber': 'lotnumber', 'expiryDate': 'expirydate', 'ta': 'ta', 'productSize': 'productsize', 'storageRoom': 'storageroom', 'storageFridge': 'storagefridge', 'box': 'box', 'volume': 'volume', 'reference': 'reference', 'usageCount': 'usagecount', 'lowLevel': 'lowlevel', 'sampleType': 'sampletype', 'folderNo': 'folderno', 'result': 'result', 'seqResult': 'seqresult', 'remark': 'remark' }; 
         for (const [h, d] of Object.entries(map)) {    
             const el = document.getElementById('field_' + h) || document.getElementById('form_' + h);
             if (el) {
@@ -2297,7 +2340,12 @@
     };
 
     window.renderBoxMap = function() {
-        const box = document.getElementById('mapSelectBox').value; if(!box) return;
+        const box = document.getElementById('mapSelectBox').value;
+        if(!box) {
+            generateGrid('main-grid-container', 'handleCellClick', {});
+            document.getElementById('slot-no-data').classList.remove('hidden'); document.getElementById('slot-data-panel').classList.add('hidden');
+            return;
+        }
         const occ = {}; dataList.filter(i => !i.isoutofstock && String(i.box).toUpperCase() === box.toUpperCase()).forEach(i => {
             i.slot.split(',').forEach(s => occ[s.trim().toUpperCase()] = i.id);
         });
@@ -2325,6 +2373,8 @@
             <div class="grid grid-cols-2 gap-2 border-t pt-4">
                  <div class="bg-slate-50 p-2 rounded-lg border"><span class="block text-[9px] text-slate-400 uppercase">Type</span><span class="font-bold text-xs">${item.itemtype}</span></div>
                  <div class="bg-slate-50 p-2 rounded-lg border"><span class="block text-[9px] text-slate-400 uppercase">Species</span><span class="font-bold text-xs">${item.species || '-'}</span></div>
+                 <div class="bg-slate-50 p-2 rounded-lg border"><span class="block text-[9px] text-slate-400 uppercase">Storage Room</span><span class="font-bold text-xs">${item.storageroom || '-'}</span></div>
+                 <div class="bg-slate-50 p-2 rounded-lg border"><span class="block text-[9px] text-slate-400 uppercase">Refrigerator / Freezer</span><span class="font-bold text-xs">${item.storagefridge || '-'}</span></div>
             </div>
             <button onclick="showDetails('${item.id}')" class="w-full py-3 bg-slate-800 text-white rounded-xl text-xs font-bold uppercase hover:bg-slate-900 transition-colors">View Full Report</button>
         </div>`;
@@ -2332,7 +2382,7 @@
 
     window.updateFilterSuggestions = function(items) {
         // อัปเดต Datalist ในฟอร์ม
-        const map = { species: 'list_species', disease: 'list_disease', company: 'list_company', box: 'list_box_options' };
+        const map = { species: 'list_species', disease: 'list_disease', company: 'list_company', box: 'list_box_options', storageroom: 'list_storage_room', storagefridge: 'list_storage_fridge' };
         Object.entries(map).forEach(([k, lid]) => {
             const list = document.getElementById(lid); if (!list) return;
             const u = [...new Set(items.map(i => i[k]))].filter(Boolean).sort();
@@ -2364,9 +2414,190 @@
             if(currentAppMode === 'DNA_cDNA') return t === 'DNA' || t === 'CDNA';
             return true;
         });
-        const boxes = [...new Set(modeItems.map(i => i.box).filter(Boolean))].sort();
+        // ใช้เฉพาะรายการที่มีกล่อง แล้วกรองไล่ลำดับ ห้อง -> ตู้ -> กล่อง โดยคงค่าที่เลือกไว้เดิม
+        const located = modeItems.filter(i => i.box);
+        const roomSel = document.getElementById('mapSelectRoom');
+        const fridgeSel = document.getElementById('mapSelectFridge');
         const sel = document.getElementById('mapSelectBox');
-        if(sel) { sel.innerHTML = boxes.map(b => `<option value="${b}">${b}</option>`).join('') || '<option value="">- No Boxes -</option>'; }
+        const prevRoom = roomSel ? roomSel.value : '';
+        const prevFridge = fridgeSel ? fridgeSel.value : '';
+        const prevBox = sel ? sel.value : '';
+
+        const rooms = [...new Set(located.map(i => i.storageroom).filter(Boolean))].sort();
+        const room = rooms.includes(prevRoom) ? prevRoom : '';
+        if(roomSel) { roomSel.innerHTML = '<option value="">All Rooms</option>' + rooms.map(r => `<option value="${r}">${r}</option>`).join(''); roomSel.value = room; }
+
+        const inRoom = located.filter(i => !room || i.storageroom === room);
+        const fridges = [...new Set(inRoom.map(i => i.storagefridge).filter(Boolean))].sort();
+        const fridge = fridges.includes(prevFridge) ? prevFridge : '';
+        if(fridgeSel) { fridgeSel.innerHTML = '<option value="">All Refrigerators / Freezers</option>' + fridges.map(f => `<option value="${f}">${f}</option>`).join(''); fridgeSel.value = fridge; }
+
+        const boxes = [...new Set(inRoom.filter(i => !fridge || i.storagefridge === fridge).map(i => i.box))].sort();
+        if(sel) {
+            sel.innerHTML = boxes.map(b => `<option value="${b}">${b}</option>`).join('') || '<option value="">- No Boxes -</option>';
+            if(boxes.includes(prevBox)) sel.value = prevBox;
+        }
+    };
+
+    window.onMapLocationChange = function() {
+        updateBoxOptions(dataList);
+        renderBoxMap();
+        document.getElementById('slot-no-data').classList.remove('hidden'); document.getElementById('slot-data-panel').classList.add('hidden');
+    };
+
+    // --- Set Box Location: กำหนดห้อง/ตู้ให้หลายกล่องพร้อมกัน ---
+    let boxLocationGroups = [];
+
+    // ใช้ชุดรายการเดียวกับ renderBoxMap (ไม่รวมรายการ Out of stock)
+    const getBoxLocationItems = function(box) {
+        return dataList.filter(i => !i.isoutofstock && String(i.box).toUpperCase() === String(box).toUpperCase());
+    };
+
+    // สรุปค่าห้อง/ตู้ของกล่อง: text = ข้อความแสดงผล, value = ค่าเริ่มต้นในช่องกรอก, log = ค่าเดิมสำหรับ Activity Logs
+    const describeBoxLocation = function(items, key) {
+        const vals = items.map(i => String(i[key] || '').trim());
+        const uniq = [...new Set(vals.filter(Boolean))].sort();
+        if (uniq.length === 0) return { text: '-', value: '', log: '-' };
+        if (uniq.length === 1 && vals.every(v => v === uniq[0])) return { text: uniq[0], value: uniq[0], log: uniq[0] };
+        return { text: `Mixed (${uniq.join(', ')})`, value: '', log: 'Mixed' };
+    };
+
+    const plural = (n, word) => `${n} ${word}${n === 1 ? '' : (word === 'box' ? 'es' : 's')}`;
+    const escapeBoxText = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+    // รายชื่อกล่องของโหมดปัจจุบัน (เงื่อนไขกรองโหมดเดียวกับ updateBoxOptions) รวมชื่อที่ต่างกันแค่ตัวพิมพ์เป็นกล่องเดียว
+    const getBoxLocationGroups = function() {
+        const modeItems = dataList.filter(i => {
+            let t = (i.itemtype || 'PRIMER').toUpperCase();
+            if (t === 'DNA' || t === 'CDNA') t = (i.folderno || t).toUpperCase();
+            if(currentAppMode === 'PRIMER_PROBE') return t === 'PRIMER' || t === 'PROBE';
+            if(currentAppMode === 'DNA_cDNA') return t === 'DNA' || t === 'CDNA';
+            return true;
+        });
+        const names = {};
+        modeItems.filter(i => !i.isoutofstock && i.box).forEach(i => {
+            const key = String(i.box).toUpperCase();
+            (names[key] = names[key] || new Set()).add(String(i.box));
+        });
+        return Object.keys(names).map(key => ({ key, name: [...names[key]].sort().join(', ') }))
+            .sort((a, b) => (a.name < b.name ? -1 : a.name > b.name ? 1 : 0));
+    };
+
+    const getCheckedBoxGroups = function() {
+        return [...document.querySelectorAll('#boxLoc_list .boxLoc-check')].filter(c => c.checked).map(c => boxLocationGroups[Number(c.dataset.idx)]);
+    };
+
+    window.updateBoxLocationSummary = function() {
+        const groups = getCheckedBoxGroups();
+        const n = groups.reduce((sum, g) => sum + getBoxLocationItems(g.key).length, 0);
+        document.getElementById('boxLoc_summary').innerText = `Selected: ${plural(groups.length, 'box')}, ${plural(n, 'item')}`;
+        document.getElementById('confirmBoxLocationBtn').innerText = `Apply to ${plural(groups.length, 'box')} (${plural(n, 'item')})`;
+    };
+
+    window.setAllBoxLocationChecks = function(checked) {
+        document.querySelectorAll('#boxLoc_list .boxLoc-check').forEach(c => { c.checked = checked; });
+        updateBoxLocationSummary();
+    };
+
+    window.openBoxLocationModal = function() {
+        boxLocationGroups = getBoxLocationGroups();
+        if (boxLocationGroups.length === 0) { showToast("ไม่มีกล่องให้กำหนด", "error"); return; }
+        const selKey = String(document.getElementById('mapSelectBox').value || '').toUpperCase();
+        document.getElementById('boxLoc_list').innerHTML = boxLocationGroups.map((g, idx) => {
+            const items = getBoxLocationItems(g.key);
+            const loc = `${describeBoxLocation(items, 'storageroom').log} / ${describeBoxLocation(items, 'storagefridge').log}`;
+            return `<label class="flex items-start gap-3 px-3 py-2 hover:bg-slate-50 cursor-pointer">
+                <input type="checkbox" class="boxLoc-check mt-0.5 w-4 h-4 shrink-0 accent-brand-600" data-idx="${idx}" onchange="updateBoxLocationSummary()" ${selKey && g.key === selKey ? 'checked' : ''}>
+                <span class="flex-1 min-w-0">
+                    <span class="block text-sm font-bold text-slate-800 break-all">${escapeBoxText(g.name)}</span>
+                    <span class="block text-[11px] text-slate-500 break-all">${plural(items.length, 'item')} &middot; ${escapeBoxText(loc)}</span>
+                </span>
+            </label>`;
+        }).join('');
+
+        // เติมค่าเริ่มต้นครั้งเดียวตอนเปิด จากกล่องที่ติ๊กไว้ (เฉพาะเมื่อทุกรายการมีค่าเดียวกัน)
+        const preItems = selKey ? getBoxLocationItems(selKey) : [];
+        const preGroup = boxLocationGroups.some(g => g.key === selKey);
+        document.getElementById('boxLoc_room').value = preGroup ? describeBoxLocation(preItems, 'storageroom').value : '';
+        document.getElementById('boxLoc_fridge').value = preGroup ? describeBoxLocation(preItems, 'storagefridge').value : '';
+        document.getElementById('confirmBoxLocationBtn').disabled = false;
+        updateBoxLocationSummary();
+        const modal = document.getElementById('boxLocationModal');
+        modal.classList.remove('hidden'); modal.classList.add('flex');
+    };
+
+    window.closeBoxLocationModal = function() {
+        const modal = document.getElementById('boxLocationModal');
+        modal.classList.add('hidden'); modal.classList.remove('flex');
+    };
+
+    window.saveBoxLocation = async function() {
+        if (!(currentUserRole === 'superadmin' || currentUserRole === 'admin')) { showToast("คุณไม่มีสิทธิ์แก้ไข", "error"); return; }
+        const groups = getCheckedBoxGroups();
+        if (groups.length === 0) { showToast("กรุณาเลือกอย่างน้อย 1 กล่อง", "error"); return; }
+        const room = document.getElementById('boxLoc_room').value.trim();
+        const fridge = document.getElementById('boxLoc_fridge').value.trim();
+        if (!room && !fridge) { showToast("กรุณากรอกอย่างน้อย 1 ช่อง", "error"); return; }
+
+        // รวมรายการของทุกกล่องที่ติ๊ก ตัดรายการซ้ำด้วย collection + id
+        const dnaItems = new Set(dnaDataList);
+        const seen = new Set();
+        const targets = [];
+        const boxLines = [];
+        groups.forEach(g => {
+            const items = getBoxLocationItems(g.key);
+            boxLines.push(`${g.name} (${plural(items.length, 'item')}): was ${describeBoxLocation(items, 'storageroom').log} / ${describeBoxLocation(items, 'storagefridge').log}`);
+            items.forEach(i => {
+                const col = dnaItems.has(i) ? DNA_COLLECTION : COLLECTION_NAME;
+                const k = `${col}/${i.id}`;
+                if (!seen.has(k)) { seen.add(k); targets.push({ item: i, col }); }
+            });
+        });
+        if (targets.length === 0) { showToast("ไม่มีรายการในกล่องที่เลือก", "error"); return; }
+        const hasChange = targets.some(({ item: i }) => (room && i.storageroom !== room) || (fridge && i.storagefridge !== fridge));
+        if (!hasChange) { showToast("ไม่มีการเปลี่ยนแปลง", "error"); return; }
+
+        // เขียนเฉพาะ field ที่กรอก ช่องว่าง = คงค่าเดิม
+        const update = {};
+        if (room) update.storageroom = room;
+        if (fridge) update.storagefridge = fridge;
+
+        const btn = document.getElementById('confirmBoxLocationBtn');
+        btn.disabled = true;
+        let saved = 0;
+        try {
+            // แบ่งชุดละไม่เกิน 400 รายการ (Firestore จำกัด 500 ต่อ batch) แล้วบันทึกทีละชุดตามลำดับ
+            for (let start = 0; start < targets.length; start += 400) {
+                const chunk = targets.slice(start, start + 400);
+                const batch = writeBatch(db);
+                chunk.forEach(t => batch.update(doc(db, t.col, t.item.id), update));
+                await batch.commit();
+                saved += chunk.length;
+            }
+        } catch (error) {
+            console.error(error);
+            showToast("บันทึกไม่สำเร็จ บันทึกไปแล้ว " + saved + " รายการ กรุณากด Apply อีกครั้ง: " + error.message, "error");
+            btn.disabled = false;
+            return;
+        }
+        btn.disabled = false;
+
+        // log เดียวต่อการกด 1 ครั้ง (ID ของ log ตั้งจากวินาที ถ้าเรียกหลายครั้งจะเขียนทับกัน)
+        const details = [];
+        if (room) details.push(`Set Storage Room: ${room}`);
+        if (fridge) details.push(`Set Refrigerator / Freezer: ${fridge}`);
+        details.push(...boxLines);
+        details.push(`Boxes updated: ${groups.length}, Items updated: ${targets.length}`);
+        saveHistoryLog("Box Location Updated", groups.length === 1 ? groups[0].name : `${groups.length} boxes`, details);
+
+        showToast(`อัปเดตที่เก็บแล้ว ${groups.length} กล่อง ${targets.length} รายการ`, "success");
+        closeBoxLocationModal();
+
+        document.getElementById('mapSelectRoom').value = '';
+        document.getElementById('mapSelectFridge').value = '';
+        updateBoxOptions(dataList);
+        renderBoxMap();
+        document.getElementById('slot-no-data').classList.remove('hidden'); document.getElementById('slot-data-panel').classList.add('hidden');
     };
 
     window.formatDateOnly = function(d) { if(!d) return '-'; const date = new Date(d); return `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`; };
@@ -2439,7 +2670,7 @@
         }
 
         const typeSpecific = (item.itemtype || '').toUpperCase() === 'PROBE' ? { probe: 'Probe Seq', fluorescent: 'Fluorescent' } : { forward: 'Forward', reward: 'Reward' };
-        const labels = { id: 'ID', orderdate: 'Ordered Date', itemtype: 'Type', animaltype: 'Animal', sampletype: 'Sample Type', species: 'Species', disease: 'Disease', primername: 'Name', originalname: 'Original Name', initialVolume: 'Initial Volume (Total)', volume: 'Current Volume (Total)', usagecount: 'Total Usage', targetgene: 'Gene', method: 'Method', ...typeSpecific, company: 'Company', lotnumber: 'Lot No.', expirydate: 'Exp. Date', ta: 'TA', productsize: 'Size', folderno: 'Nucleic Acid Type', result: 'Result', seqresult: 'Seq Result', remark: 'Remark', attachmentname: 'File Attached', box: 'Box', lowlevel: 'Low Level Alert', reference: 'Reference' };
+        const labels = { id: 'ID', orderdate: 'Ordered Date', itemtype: 'Type', animaltype: 'Animal', sampletype: 'Sample Type', species: 'Species', disease: 'Disease', primername: 'Name', originalname: 'Original Name', initialVolume: 'Initial Volume (Total)', volume: 'Current Volume (Total)', usagecount: 'Total Usage', targetgene: 'Gene', method: 'Method', ...typeSpecific, company: 'Company', lotnumber: 'Lot No.', expirydate: 'Exp. Date', ta: 'TA', productsize: 'Size', folderno: 'Nucleic Acid Type', result: 'Result', seqresult: 'Seq Result', remark: 'Remark', attachmentname: 'File Attached', storageroom: 'Storage Room', storagefridge: 'Refrigerator / Freezer', box: 'Box', lowlevel: 'Low Level Alert', reference: 'Reference' };
         document.getElementById('modalprimername').innerText = item.primername;
         
         let content = Object.entries(labels).map(([k, lbl]) => {
@@ -2542,6 +2773,8 @@
                     "Company": item.company || '-',
                     "Lot No.": item.lotnumber || '-',
                     "Exp. Date": item.expirydate || '-',
+                    "Storage Room": item.storageroom || '-',
+                    "Refrigerator / Freezer": item.storagefridge || '-',
                     "Box": item.box || '-',
                     "Slot": item.slot || '-',
                     "Initial Volume": item.initialVolume || item.volume || 0,
@@ -2565,6 +2798,8 @@
                     "Company": item.company || '-',
                     "Lot No.": item.lotnumber || '-',
                     "Exp. Date": item.expirydate || '-',
+                    "Storage Room": item.storageroom || '-',
+                    "Refrigerator / Freezer": item.storagefridge || '-',
                     "Box": item.box || '-',
                     "Slot": item.slot || '-',
                     "Initial Volume": item.initialVolume || item.volume || 0,
@@ -2582,6 +2817,8 @@
                     "Disease": item.disease || '-',
                     "Folder No./Name": item.primername || '-',
                     "Nucleic Acid Type": item.folderno || type || '-',
+                    "Storage Room": item.storageroom || '-',
+                    "Refrigerator / Freezer": item.storagefridge || '-',
                     "Box": item.box || '-',
                     "Slot": item.slot || '-',
                     "Initial Volume": item.initialVolume || item.volume || 0,
@@ -2752,6 +2989,8 @@
             const btnNewPrimer = document.getElementById('btn-new-primer');
             const btnNewProbe = document.getElementById('btn-new-probe');
             const canEdit = (currentUserRole === 'superadmin' || currentUserRole === 'admin');
+            const btnBoxLoc = document.getElementById('btn-set-box-location');
+            if(btnBoxLoc) btnBoxLoc.style.display = canEdit ? '' : 'none';
 
             if(mode === 'PRIMER_PROBE') {
                 if(subPrimer) subPrimer.classList.remove('hidden');
