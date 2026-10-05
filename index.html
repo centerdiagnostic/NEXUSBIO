@@ -1057,11 +1057,43 @@
     }
 
     // --- AUTH LOGIC ---
+    // บัญชีที่ไม่มีเอกสารใน users = บัญชีที่ถูกลบ/ระงับ ให้ออกจากระบบทันที
+    const SUSPENDED_MSG = "บัญชีนี้ถูกระงับการใช้งาน กรุณาติดต่อผู้ดูแลระบบ";
+    const SUSPENDED_KEY = 'nexusbio_suspended';
+    let unsubscribeOwnUserDoc = null;
+
+    function showSuspendedMessage() {
+        const errorMsg = document.getElementById('loginError');
+        errorMsg.innerText = SUSPENDED_MSG;
+        errorMsg.classList.remove('hidden');
+        document.getElementById('loginSubmitBtn').disabled = false;
+        document.getElementById('loginBtnText').innerText = 'เข้าสู่ระบบ';
+        document.getElementById('loginSpinner').classList.add('hidden');
+    }
+
+    // reloadAfter = true เมื่อถูกระงับระหว่างใช้งาน เพื่อล้างข้อมูลที่โหลดไว้ในหน้า (ข้อความยังอยู่เพราะเก็บใน sessionStorage)
+    async function blockSuspendedAccount(reloadAfter = false) {
+        try { sessionStorage.setItem(SUSPENDED_KEY, '1'); } catch (e) {}
+        if (unsubscribeOwnUserDoc) { unsubscribeOwnUserDoc(); unsubscribeOwnUserDoc = null; }
+        showSuspendedMessage();
+        try { await signOut(auth); } catch (e) { console.error(e); }
+        if (reloadAfter) window.location.reload();
+    }
+
     onAuthStateChanged(auth, async (user) => {
         if (user) {
             const userSettingsRef = doc(db, 'users', user.email);
             const userSnap = await getDoc(userSettingsRef);
-            const userData = userSnap.exists() ? userSnap.data() : {};
+            if (!userSnap.exists()) { await blockSuspendedAccount(); return; }
+            try { sessionStorage.removeItem(SUSPENDED_KEY); } catch (e) {}
+
+            // ติดตามเอกสารของตัวเอง ถ้าถูกลบระหว่างใช้งานให้ออกจากระบบ (ไม่เตะออกเพราะข้อผิดพลาดของเครือข่าย)
+            if (unsubscribeOwnUserDoc) unsubscribeOwnUserDoc();
+            unsubscribeOwnUserDoc = onSnapshot(userSettingsRef, (snap) => {
+                if (!snap.exists() && !snap.metadata.fromCache) blockSuspendedAccount(true);
+            }, (error) => { console.error("Error watching user document: ", error); });
+
+            const userData = userSnap.data();
             currentUserRole = userData.role || 'user';
             
             window.proceedToApp = function() {
@@ -1097,7 +1129,7 @@
                 showToast(`ยินดีต้อนรับคุณ ${displayName} เข้าสู่ระบบ`, "success");
             };
 
-            if (!userSnap.exists() || !userData.passwordChanged) {
+            if (!userData.passwordChanged) {
                 document.getElementById('login-overlay').classList.add('hidden-important');
                 document.getElementById('wp-lab-app-container').classList.add('hidden-important');
                 document.getElementById('forcePasswordModal').classList.remove('hidden');
@@ -1105,9 +1137,13 @@
                 window.proceedToApp();
             }
         } else {
+            if (unsubscribeOwnUserDoc) { unsubscribeOwnUserDoc(); unsubscribeOwnUserDoc = null; }
             document.getElementById('login-overlay').classList.remove('hidden-important');
             document.getElementById('wp-lab-app-container').classList.add('hidden-important');
             document.getElementById('forcePasswordModal').classList.add('hidden');
+            let wasSuspended = false;
+            try { wasSuspended = sessionStorage.getItem(SUSPENDED_KEY) === '1'; } catch (e) {}
+            if (wasSuspended) showSuspendedMessage();
         }
     });
 
@@ -1298,9 +1334,16 @@
         btnText.innerText = 'กำลังตรวจสอบข้อมูล...';
         spinner.classList.remove('hidden');
         errorMsg.classList.add('hidden');
-        
+        try { sessionStorage.removeItem(SUSPENDED_KEY); } catch (err) {}
+
         signInWithEmailAndPassword(auth, email, pass)
-            .then(() => { saveHistoryLog("User Login", "System", ["Logged in successfully"]); })
+            .then(async (cred) => {
+                // ไม่บันทึกประวัติการเข้าสู่ระบบของบัญชีที่ถูกระงับ (ไม่มีเอกสารใน users)
+                try {
+                    const snap = await getDoc(doc(db, 'users', cred.user.email));
+                    if (snap.exists()) saveHistoryLog("User Login", "System", ["Logged in successfully"]);
+                } catch (err) { console.error(err); }
+            })
             .catch((error) => {
                 submitBtn.disabled = false;
                 btnText.innerText = 'เข้าสู่ระบบ';
@@ -1340,7 +1383,9 @@
     let onlineLogsDNA = [];
     let historyCurrentPage = 1;
     const historyRowsPerPage = 10;
-    let currentSeqTargetId = null; 
+    let historyTotalPages = 1;
+    let currentSeqTargetId = null;
+    let copySourceId = null; // ID ต้นฉบับเมื่อเปิดฟอร์มจากปุ่ม Copy
 
     window.fetchData = function() { 
         // ดึงข้อมูล Primer/Probe
@@ -1440,8 +1485,12 @@
         else if (currentAppMode === 'PRIMER_PROBE') sourceLogs = onlineLogsPrimer;
         else sourceLogs = [...onlineLogsPrimer, ...onlineLogsDNA].sort((a, b) => new Date(b.ts) - new Date(a.ts));
 
+        // วันเริ่มต้นนับตั้งแต่ 00:00:00 และวันสิ้นสุดนับถึง 23:59:59.999 ตามเวลาของเครื่องผู้ใช้
+        const fromTime = historyDayBoundary(dFrom, false);
+        const toTime = historyDayBoundary(dTo, true);
         const filteredLogs = sourceLogs.filter(l => {
-            const dateMatch = (!dFrom || new Date(l.ts) >= new Date(dFrom)) && (!dTo || new Date(l.ts) <= new Date(dTo));
+            const logTime = new Date(l.ts).getTime();
+            const dateMatch = (fromTime === null || logTime >= fromTime) && (toTime === null || logTime <= toTime);
             const searchMatch = !qText || String(l.name).toLowerCase().includes(qText) || String(l.action).toLowerCase().includes(qText) || (l.by && String(l.by).toLowerCase().includes(qText));
             let fieldMatch = true;
             if (fField) {
@@ -1454,6 +1503,7 @@
         });
 
         const totalPages = Math.ceil(filteredLogs.length / historyRowsPerPage) || 1;
+        historyTotalPages = totalPages;
         document.getElementById('totalHistPagesDisplay').innerText = totalPages;
         document.getElementById('currentHistPageDisplay').innerText = historyCurrentPage;
         document.getElementById('prevHistBtn').disabled = (historyCurrentPage === 1);
@@ -1478,12 +1528,19 @@
     };
 
     window.prevHistPage = function() { if (historyCurrentPage > 1) { historyCurrentPage--; renderHistory(); } };
-    window.nextHistPage = function() { 
-        const currentLogsLength = (currentAppMode === 'DNA_cDNA') ? onlineLogsDNA.length : (currentAppMode === 'PRIMER_PROBE' ? onlineLogsPrimer.length : onlineLogsPrimer.length + onlineLogsDNA.length);
-        if (historyCurrentPage < Math.ceil(currentLogsLength / historyRowsPerPage)) { 
-            historyCurrentPage++; renderHistory(); 
-        } 
+    window.nextHistPage = function() {
+        // ใช้จำนวนหน้าหลังกรองที่ renderHistory คำนวณไว้
+        if (historyCurrentPage < historyTotalPages) {
+            historyCurrentPage++; renderHistory();
+        }
     };
+
+    // แปลงค่าจากช่องวันที่ (YYYY-MM-DD) เป็นเวลาต้นวันหรือท้ายวันตามเวลาท้องถิ่น
+    function historyDayBoundary(value, endOfDay) {
+        if (!value) return null;
+        const [y, m, d] = value.split('-').map(Number);
+        return endOfDay ? new Date(y, m - 1, d, 23, 59, 59, 999).getTime() : new Date(y, m - 1, d, 0, 0, 0, 0).getTime();
+    }
 
     window.renderTable = function(items, startIdx) {
         const tbody = document.getElementById('dataTableBody');
@@ -1673,6 +1730,7 @@
             if(tView) tView.classList.remove('hidden');
             
             ['storage', 'history', 'admin'].forEach(vid => {
+                if (vid === 'admin' && t === 'admin') return; // ปุ่มจัดการผู้ใช้ต้องเปิดหน้าได้จากโหมด Dashboard ด้วย
                 const el = document.getElementById('view-' + vid);
                 if(el) el.classList.add('hidden');
             });
@@ -1738,8 +1796,25 @@
         } catch(e) { console.error(e); showToast("เกิดข้อผิดพลาด", "error"); }
     };
 
+    // ตรวจก่อนคืนสต๊อก: คืนข้อความแจ้งเตือนถ้าคืนไม่ได้ หรือ null ถ้าคืนได้
+    function checkRestoreConflict(item, items) {
+        if (!item.prevbox || !item.prevslot) return "คืนสต๊อกไม่ได้: ไม่พบที่เก็บเดิมของรายการนี้";
+        const box = String(item.prevbox).toUpperCase();
+        const prevSlots = String(item.prevslot).split(',').map(s => s.trim()).filter(Boolean);
+        for (const other of items) {
+            // เงื่อนไขเดียวกับการตรวจ Slot ซ้ำใน submit handler (ไม่สนตัวพิมพ์เล็กใหญ่)
+            if (other === item || other.isoutofstock || String(other.box).toUpperCase() !== box) continue;
+            const otherSlots = String(other.slot).split(',').map(s => s.trim().toUpperCase());
+            const hit = prevSlots.find(s => otherSlots.includes(s.toUpperCase()));
+            if (hit) return `คืนสต๊อกไม่ได้: Slot ${hit} ของกล่อง ${item.prevbox} ถูกใช้โดย ${other.primername || other.id} แล้ว กรุณาย้ายรายการนั้นก่อน`;
+        }
+        return null;
+    }
+
     window.undoOutOfStock = async function(id) {
         const item = dataList.find(d => d.id === id); if (!item) return;
+        const restoreError = checkRestoreConflict(item, dataList);
+        if (restoreError) { showToast(restoreError, "error"); return; }
         const targetCollection = (item.itemtype === 'DNA' || item.itemtype === 'cDNA') ? DNA_COLLECTION : COLLECTION_NAME;
         try {
             await updateDoc(doc(db, targetCollection, id), { box: item.prevbox, slot: item.prevslot, isoutofstock: false });
@@ -1748,8 +1823,9 @@
         } catch(e) { console.error(e); showToast("เกิดข้อผิดพลาด", "error"); }
     };
 
-    window.toggleForm = function(type = null) { 
+    window.toggleForm = function(type = null) {
         const f = document.getElementById('data-form'); if (!f) return;
+        copySourceId = null; // ล้างที่มาของการ Copy ทุกครั้งที่เปิด/ปิดฟอร์ม
         if (type === null) { f.classList.add('hidden'); return; }
         isEditMode = false; isMovementMode = false; currentFormType = type;
         
@@ -1979,6 +2055,66 @@
         return String(max + 1).padStart(4, '0');
     }
 
+    // แปลงวันที่ที่เก็บไว้เป็นค่าในช่องวันที่ของฟอร์ม (วิธีเดียวกับ populateForm)
+    function formDateOf(value) {
+        let val = value || "";
+        if (val) try { val = new Date(val).toISOString().split('T')[0]; } catch(e) {}
+        return val;
+    }
+
+    // ใช้ในโหมดบันทึกการใช้งาน: คืนข้อความแจ้งเตือนถ้าปริมาตรที่ใช้ไม่ถูกต้อง หรือ null ถ้าผ่าน
+    function validateUsedAmount(rawValue, slotIndex, slotVolumes) {
+        const raw = String(rawValue ?? '').trim();
+        const used = Number(raw);
+        if (raw === '' || !isFinite(used) || used <= 0) return "กรุณากรอกปริมาตรที่ใช้ให้มากกว่า 0";
+        if (slotIndex < 0 || slotIndex >= slotVolumes.length) return "ไม่พบ Slot ที่เลือก กรุณาเปิดรายการใหม่อีกครั้ง";
+        const remaining = parseFloat(slotVolumes[slotIndex]) || 0;
+        if (used > remaining) return `ปริมาตรที่ใช้ (${used}) มากกว่าที่เหลือใน Slot นี้ (${remaining})`;
+        return null;
+    }
+
+    // ใช้ในโหมด Edit: จับคู่ Slot ในฟอร์มกับ Slot เดิม แล้วคำนวณปริมาตรเริ่มต้นและจำนวนครั้งที่ใช้ของแต่ละ Slot
+    function computeEditInventory(original, formSlots, formVolumes) {
+        const num = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+        const norm = s => String(s).replace(/\s+/g, '').toUpperCase();
+        const slots = formSlots.map(s => String(s).trim()).filter(Boolean);
+        const oldSlots = original.slot ? String(original.slot).split(',').map(s => s.trim()).filter(Boolean) : [];
+        // ค่าสำรองของรายการเก่าที่ไม่มีอาร์เรย์ (แบบเดียวกับ showDetails)
+        const oldVols = original.volumes || [original.volume];
+        const oldInits = original.initialVolumes || [original.initialVolume !== undefined && original.initialVolume !== null && original.initialVolume !== '' ? original.initialVolume : original.volume];
+        const oldUses = original.usagecounts || [original.usagecount || 0];
+
+        // จับคู่ด้วยชื่อ Slot ก่อน แล้ว Slot ที่ยังไม่มีคู่จับกับ Slot เดิมที่เหลือตามลำดับ (กรณีย้ายหลอด)
+        const match = new Array(slots.length).fill(-1);
+        const used = new Set();
+        slots.forEach((s, i) => {
+            const j = oldSlots.findIndex((o, k) => !used.has(k) && norm(o) === norm(s));
+            if (j !== -1) { match[i] = j; used.add(j); }
+        });
+        slots.forEach((s, i) => {
+            if (match[i] !== -1) return;
+            const j = oldSlots.findIndex((o, k) => !used.has(k));
+            if (j !== -1) { match[i] = j; used.add(j); }
+        });
+
+        const initialVolumes = [], usagecounts = [];
+        slots.forEach((s, i) => {
+            const vol = num(formVolumes[i]);
+            const j = match[i];
+            if (j === -1) { initialVolumes.push(vol); usagecounts.push(0); return; } // Slot ใหม่
+            const oldVol = num(oldVols[j]);
+            const oldInit = (oldInits[j] === undefined || oldInits[j] === null || oldInits[j] === '') ? oldVol : num(oldInits[j]);
+            const uses = num(oldUses[j]);
+            let init;
+            if (vol === oldVol) init = oldInit;          // ปริมาตรไม่เปลี่ยน
+            else if (uses === 0) init = vol;             // ยังไม่เคยใช้ = แก้ค่าที่กรอกผิด
+            else init = Math.max(oldInit, vol);          // เคยใช้แล้ว
+            initialVolumes.push(init);
+            usagecounts.push(uses);
+        });
+        return { initialVolumes, usagecounts, initialVolume: initialVolumes.reduce((a, b) => a + b, 0) };
+    }
+
     document.getElementById('labForm').addEventListener('submit', async function(e) {
         e.preventDefault();
         
@@ -2041,6 +2177,20 @@
         if (newItem.storageroom) newItem.storageroom = newItem.storageroom.trim();
         if (newItem.storagefridge) newItem.storagefridge = newItem.storagefridge.trim();
 
+        // รายการที่มีอยู่แล้ว: ไม่เปลี่ยนรูปแบบ orderdate ถ้าไม่ได้แก้วันที่ (บันทึกการใช้งาน = คงค่าเดิมเสมอ)
+        if (curId) {
+            const dateOriginal = dataList.find(i => i.id === curId);
+            if (dateOriginal) {
+                const keepDate = isMovementMode || (newItem.orderdate || '') === formDateOf(dateOriginal.orderdate);
+                if (keepDate) {
+                    if (dateOriginal.orderdate === undefined) delete newItem.orderdate;
+                    else newItem.orderdate = dateOriginal.orderdate;
+                } else if (newItem.orderdate) {
+                    newItem.orderdate = new Date(newItem.orderdate).toISOString(); // รูปแบบเดียวกับการลงทะเบียนใหม่
+                }
+            }
+        }
+
         // ดักจับชื่อไฟล์และแปลงเป็น Base64
         const fileInput = document.getElementById('field_attachment');
         if (fileInput && fileInput.files.length > 0) {
@@ -2081,7 +2231,10 @@
             document.querySelectorAll('.volume-input').forEach(inp => volumesArr.push(parseFloat(inp.value||0)));
             newItem.volumes = volumesArr;
             // Also update total usage count from input in add/edit mode
-            newItem.usagecount = parseInt(document.getElementById('field_usageCount').value || 0);
+            const usageInput = document.getElementById('field_usageCount').value.trim();
+            const editOriginal = curId ? dataList.find(i => i.id === curId) : null;
+            // โหมด Edit: ช่องว่าง = คงค่าเดิม (ไม่รีเซ็ตเป็น 0)
+            newItem.usagecount = (editOriginal && usageInput === '') ? (editOriginal.usagecount || 0) : parseInt(usageInput || 0);
         }
 
         const labelsMap = { 'orderdate': 'Ordered Date', 'animaltype': 'Animal Type', 'species': 'Species', 'disease': 'Disease', 'primername': 'Name', 'originalname': 'Original Name', 'probe': 'Probe Seq', 'fluorescent': 'Fluorescent', 'targetgene': 'Target Gene', 'method': 'Method', 'forward': 'Forward', 'reward': 'Reward', 'company': 'Company', 'lotnumber': 'Lot No.', 'expirydate': 'Exp. Date', 'ta': 'TA', 'productsize': 'Size', 'storageroom': 'Storage Room', 'storagefridge': 'Refrigerator / Freezer', 'box': 'Box', 'slot': 'Slot', 'volume': 'Volume', 'lowlevel': 'Low Level', 'sampletype': 'Sample Type', 'folderno': 'Nucleic Acid Type', 'result': 'Result', 'seqresult': 'Seq Result', 'remark': 'Remark' };
@@ -2098,18 +2251,22 @@
                     }
                     
                     const slotIndex = slots.findIndex(s => s.trim() === window.selectedMovementSlot);
-                    const usageVal = parseFloat(document.getElementById('field_usedAmount').value || 0);
-                    
+
                     // Update arrays
                     let currentVolumes = originalItem.volumes ? [...originalItem.volumes] : [originalItem.volume];
                     let currentUsageCounts = originalItem.usagecounts ? [...originalItem.usagecounts] : [originalItem.usagecount || 0];
-                    
+
                     // Ensure arrays are long enough (in case added slots later without init)
                     while(currentVolumes.length < slots.length) currentVolumes.push(0);
                     while(currentUsageCounts.length < slots.length) currentUsageCounts.push(0);
 
+                    // ตรวจปริมาตรที่ใช้ก่อนคำนวณและก่อนเขียนข้อมูล (ไม่ผ่าน = ไม่นับการใช้และไม่บันทึก log)
+                    const usageError = validateUsedAmount(document.getElementById('field_usedAmount').value, slotIndex, currentVolumes);
+                    if (usageError) { showToast(usageError, "error"); return; }
+                    const usageVal = Number(document.getElementById('field_usedAmount').value.trim());
+
                     // Update specific slot
-                    const oldSlotVol = currentVolumes[slotIndex] || 0;
+                    const oldSlotVol = parseFloat(currentVolumes[slotIndex]) || 0;
                     const newSlotVol = Math.max(0, oldSlotVol - usageVal);
                     currentVolumes[slotIndex] = newSlotVol;
                     currentUsageCounts[slotIndex] = (currentUsageCounts[slotIndex] || 0) + 1;
@@ -2125,12 +2282,18 @@
                     diffs.push(`Slot Volume: ${oldSlotVol} -> ${newSlotVol}`);
                     saveHistoryLog("Usage Recorded", newItem.primername, diffs, newItem.itemtype);
                 } else {
-                    // Edit Mode
-                    newItem.initialVolume = newItem.volume; // Update total initial if edited
-                    // Update initialVolumes array if editing
-                    newItem.initialVolumes = newItem.volumes; // Assuming edit resets "initial" state for report
-                    
+                    // Edit Mode: คงปริมาตรเริ่มต้นและจำนวนครั้งที่ใช้ตาม Slot เดิม
+                    const inventory = computeEditInventory(originalItem, newItem.slot ? newItem.slot.split(',') : [], newItem.volumes || []);
+                    newItem.initialVolumes = inventory.initialVolumes;
+                    newItem.usagecounts = inventory.usagecounts;
+                    newItem.initialVolume = inventory.initialVolume;
+
                     Object.keys(labelsMap).forEach(key => {
+                        if (key === 'orderdate') {
+                            // แสดงวันที่แบบอ่านง่าย และไม่มีบรรทัดนี้ถ้าวันที่ไม่ได้เปลี่ยน
+                            if ((originalItem.orderdate || '') !== (newItem.orderdate || '')) diffs.push(`${labelsMap[key]}: ${formatDateOnly(originalItem.orderdate)} -> ${formatDateOnly(newItem.orderdate)}`);
+                            return;
+                        }
                         let oldV = String(originalItem[key] || '-');
                         let newV = String(newItem[key] || '-');
                         if (oldV !== newV) diffs.push(`${labelsMap[key]}: ${oldV} -> ${newV}`);
@@ -2149,7 +2312,9 @@
                 newItem.id = customId; 
                 const targetCollection = (type === 'DNA' || type === 'cDNA' || type === 'CDNA') ? DNA_COLLECTION : COLLECTION_NAME;
                 await setDoc(doc(db, targetCollection, customId), newItem);
-                saveHistoryLog("Registered New", newItem.primername, [`ID: ${customId}`, "Initial Registration"], newItem.itemtype);
+                const regDetails = [`ID: ${customId}`, "Initial Registration"];
+                if (copySourceId) regDetails.push(`Copied from ID: ${copySourceId}`);
+                saveHistoryLog("Registered New", newItem.primername, regDetails, newItem.itemtype);
             }
             showToast("บันทึกสำเร็จ", "success"); toggleForm(); 
         } catch (error) {
@@ -2186,6 +2351,7 @@
 
     window.openEditMode = function(id) {
         const item = dataList.find(d => d.id === id); if(!item) return;
+        copySourceId = null;
         isEditMode = true; isMovementMode = false; currentFormType = item.itemtype || 'PRIMER';
         document.getElementById('movement_extra').classList.add('hidden');
         updateFormUI(currentFormType); populateForm(item); setFieldsStatus(false);
@@ -2195,6 +2361,7 @@
 
     window.openMovementMode = function(id) {
         const item = dataList.find(d => d.id === id); if(!item) return;
+        copySourceId = null;
         isEditMode = true; isMovementMode = true; currentFormType = item.itemtype || 'PRIMER';
         
         document.getElementById('label_slot_section').innerHTML = 'Slot'; // Change label to just "Slot"
@@ -2566,9 +2733,9 @@
         btn.disabled = true;
         let saved = 0;
         try {
-            // แบ่งชุดละไม่เกิน 400 รายการ (Firestore จำกัด 500 ต่อ batch) แล้วบันทึกทีละชุดตามลำดับ
-            for (let start = 0; start < targets.length; start += 400) {
-                const chunk = targets.slice(start, start + 400);
+            // แบ่งชุดละไม่เกิน 15 รายการ (Security Rules เรียก exists() ได้ไม่เกิน 20 ครั้งต่อ batch) แล้วบันทึกทีละชุดตามลำดับ
+            for (let start = 0; start < targets.length; start += 15) {
+                const chunk = targets.slice(start, start + 15);
                 const batch = writeBatch(db);
                 chunk.forEach(t => batch.update(doc(db, t.col, t.item.id), update));
                 await batch.commit();
@@ -2733,18 +2900,20 @@
     
     window.closeDeleteModal = function() { document.getElementById('deleteModal').classList.add('hidden'); };
     
-    window.copyItem = async function(id) { 
-        const original = dataList.find(d => d.id === id); if(!original) return; 
-        const targetCollection = (original.itemtype === 'DNA' || original.itemtype === 'cDNA') ? DNA_COLLECTION : COLLECTION_NAME;
-        try {
-            const newItem = { ...original };
-            delete newItem.id; 
-            newItem.primername += " (Copy)";
-            const customId = generateNextID();
-            newItem.id = customId;
-            await setDoc(doc(db, targetCollection, customId), newItem);
-            showToast("คัดลอกร่างข้อมูลแล้ว", "success");
-        } catch(e) { console.error(e); showToast("คัดลอกไม่สำเร็จ", "error"); }
+    // Copy: เปิดฟอร์มลงทะเบียนใหม่ที่เติมข้อมูลจากต้นฉบับ (ไม่เขียนข้อมูลจนกว่าผู้ใช้จะกด Save Record)
+    window.copyItem = function(id) {
+        const original = dataList.find(d => d.id === id); if(!original) return;
+        const t = (original.itemtype || 'PRIMER').toUpperCase();
+        const formType = (t === 'PRIMER' || t === 'PROBE') ? t : (t === 'CDNA' ? 'cDNA' : 'DNA');
+        toggleForm(formType);
+        // ไม่คัดลอกที่เก็บ ปริมาตร จำนวนครั้งที่ใช้ และไฟล์แนบ
+        const copyData = { ...original, primername: (original.primername || '') + ' (Copy)',
+            storageroom: '', storagefridge: '', box: '', slot: '', volume: '', volumes: undefined, usagecount: '' };
+        populateForm(copyData);
+        document.getElementById('editingId').value = "";
+        document.getElementById('field_itemType').value = formType;
+        document.getElementById('formTitle').innerText += " (Copy)";
+        copySourceId = original.id;
     };
     
     window.exportToExcel = function() {
@@ -2864,11 +3033,12 @@
     document.getElementById('adminAddUserForm')?.addEventListener('submit', async (e) => {
         e.preventDefault();
         if (currentUserRole !== 'superadmin') return alert("ไม่อนุญาตให้เข้าถึง (Access Denied)");
-        const email = document.getElementById('admin_newEmail').value;
+        // ใช้อีเมลตัวพิมพ์เล็กเป็นชื่อเอกสาร ให้ตรงกับอีเมลที่ระบบเข้าสู่ระบบส่งกลับมา (ป้องกันบัญชีใหม่ถูกมองว่าเป็นบัญชีที่ถูกระงับ)
+        const email = document.getElementById('admin_newEmail').value.trim().toLowerCase();
         const pass = document.getElementById('admin_newPass').value;
         const name = document.getElementById('admin_newName').value;
         const role = document.getElementById('admin_newRole').value;
-        
+
         try {
             // สร้างผู้ใช้ใหม่ด้วย Secondary App เพื่อไม่ให้ Admin หลักหลุดจากระบบ
             await createUserWithEmailAndPassword(secondaryAuth, email, pass);
@@ -2885,10 +3055,34 @@
             showToast("เพิ่มบัญชีผู้ใช้ใหม่สำเร็จ", "success");
             document.getElementById('adminAddUserForm').reset();
         } catch (error) {
+            // อีเมลนี้มีบัญชีเข้าสู่ระบบอยู่แล้ว (เช่น ผู้ใช้ที่เคยถูกลบ) ให้เลือกคืนสิทธิ์โดยสร้างเอกสารใน users ใหม่
+            if (error.code === 'auth/email-already-in-use') {
+                await restoreExistingAccount(email, name, role);
+                return;
+            }
             console.error(error);
             showToast("ไม่สามารถเพิ่มผู้ใช้ได้: " + error.message, "error");
         }
     });
+
+    async function restoreExistingAccount(email, name, role) {
+        try {
+            const existing = await getDoc(doc(db, 'users', email));
+            if (existing.exists()) { showToast("อีเมลนี้มีอยู่ในระบบแล้ว", "error"); return; }
+            if (!confirm("อีเมลนี้มีบัญชีอยู่แล้ว ต้องการคืนสิทธิ์ให้บัญชีนี้หรือไม่? (รหัสผ่านจะเป็นรหัสเดิมของบัญชี ไม่ใช่รหัสที่กรอกในฟอร์มนี้)")) return;
+            await setDoc(doc(db, 'users', email), {
+                displayName: name,
+                role: role,
+                passwordChanged: false,
+                createdAt: new Date().toISOString()
+            });
+            showToast("คืนสิทธิ์ให้บัญชีนี้แล้ว", "success");
+            document.getElementById('adminAddUserForm').reset();
+        } catch (error) {
+            console.error(error);
+            showToast("ไม่สามารถเพิ่มผู้ใช้ได้: " + error.message, "error");
+        }
+    }
 
     window.fetchAdminUsers = function() {
         if (currentUserRole !== 'superadmin') return;
@@ -2959,7 +3153,7 @@
     window.deleteUserAccount = async function(email) {
         if (currentUserRole !== 'superadmin') return;
         if (email === auth.currentUser.email) return alert("ไม่สามารถลบบัญชีตัวเองที่กำลังใช้งานอยู่ได้");
-        if (confirm(`ยืนยันการระงับสิทธิ์ ${email} ใช่หรือไม่?\n(นี่จะเป็นการเพิกถอนสิทธิ์เข้าถึงฐานข้อมูลของบัญชีนี้)`)) {
+        if (confirm(`ยืนยันการลบผู้ใช้ ${email} ใช่หรือไม่?\nบัญชีนี้จะเข้าสู่ระบบไม่ได้อีก จนกว่าจะเพิ่มกลับในหน้านี้`)) {
             try {
                 await deleteDoc(doc(db, 'users', email));
                 showToast("ลบผู้ใช้งานออกจากระบบสำเร็จแล้ว", "success");
