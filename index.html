@@ -570,11 +570,11 @@
 
                                     <div id="group_probe" class="space-y-4">
                                         <div><label class="flex justify-between items-center text-xs font-bold text-slate-600 mb-1">Probe Seq <span id="probe_counter" class="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-500">0 bp.</span></label><input type="text" name="probe" id="field_probe" readonly onclick="openSeqEditor('field_probe', 'Probe Sequence')" class="w-full rounded-lg border-slate-300 p-2.5 text-sm font-mono border outline-none cursor-pointer hover:bg-slate-50 placeholder-slate-400" placeholder="Click to edit..."></div>
-                                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Fluorescent</label><select name="fluorescent" id="field_fluorescent" class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none bg-white"><option value="">-</option><option value="FAM">FAM</option><option value="HEX">HEX</option><option value="VIC">VIC</option><option value="Cy5">Cy5</option><option value="TXR">TXR</option></select></div>
+                                        <div><label class="block text-xs font-bold text-slate-600 mb-1">Fluorescent/Label</label><input type="text" name="fluorescent" id="field_fluorescent" list="list_fluorescent" autocomplete="off" maxlength="50" placeholder="Select or type..." class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none"></div>
                                         <div><label class="block text-xs font-bold text-slate-600 mb-1">Target Gene</label><input type="text" name="targetGene" id="field_targetGene" class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none"></div>
                                     </div>
 
-                                    <div><label class="block text-xs font-bold text-slate-600 mb-1">Method <span id="star_method" class="text-red-500">*</span></label><select name="method" id="field_method" class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none bg-white"><option value="">-</option><option value="PCR">PCR</option><option value="RT-PCR">RT-PCR</option><option value="qPCR">qPCR</option><option value="RT-qPCR">RT-qPCR</option><option value="ddPCR">ddPCR</option></select></div>
+                                    <div><label class="block text-xs font-bold text-slate-600 mb-1">Method <span id="star_method" class="text-red-500">*</span></label><input type="text" name="method" id="field_method" list="list_method" autocomplete="off" maxlength="50" placeholder="Select or type..." class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none"></div>
                                     
                                     <div id="group_primer" class="grid grid-cols-1 gap-3">
                                         <div><label class="flex justify-between items-center text-xs font-bold text-slate-600 mb-1">Forward <span id="fwd_counter" class="text-[10px] bg-slate-100 px-2 py-0.5 rounded text-slate-500">0 bp.</span></label><input type="text" name="forward" id="field_forward" readonly onclick="openSeqEditor('field_forward', 'Forward Sequence')" class="w-full rounded-lg border-slate-300 p-2.5 text-xs font-mono border outline-none cursor-pointer hover:bg-slate-50 placeholder-slate-400" placeholder="Click to edit..."></div>
@@ -735,7 +735,7 @@
                 <div class="flex flex-col md:flex-row gap-4 justify-between items-center">
                     <div class="relative w-full md:max-w-md">
                         <span class="absolute inset-y-0 left-0 pl-3 flex items-center text-slate-400"><svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg></span>
-                        <input type="text" id="searchMain" onkeyup="filterTable()" placeholder="Search data..." class="w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-brand-300 outline-none text-sm font-medium transition-all">
+                        <input type="text" id="searchMain" oninput="filterTable()" placeholder="Search data..." class="w-full pl-10 pr-4 py-2.5 rounded-lg bg-slate-50 border border-slate-200 focus:bg-white focus:border-brand-300 outline-none text-sm font-medium transition-all">
                     </div>
                     <div class="flex items-center gap-2">
                         <span id="rowCountDisplay" class="px-3 py-1 bg-slate-100 text-slate-600 rounded-md text-[10px] font-bold uppercase tracking-wider border border-slate-200">0 Items</span>
@@ -829,7 +829,7 @@
                     <div id="history-filters" class="flex flex-wrap gap-2 items-center w-full md:w-auto">
                         <input type="date" id="hist_DateFrom" onchange="renderHistory(true)" class="text-xs p-2 border rounded-md bg-slate-50">
                         <input type="date" id="hist_DateTo" onchange="renderHistory(true)" class="text-xs p-2 border rounded-md bg-slate-50">
-                        <input type="text" id="hist_search" onkeyup="renderHistory(true)" placeholder="Search logs..." class="text-xs p-2 border rounded-md min-w-[150px]">
+                        <input type="text" id="hist_search" oninput="renderHistory(true)" placeholder="Search logs..." class="text-xs p-2 border rounded-md min-w-[150px]">
                         <select id="hist_field_filter" onchange="renderHistory(true)" class="text-xs p-2 border rounded-md hidden">
                             <option value="">All Fields</option>
                             <option value="Name">Name</option>
@@ -1029,6 +1029,8 @@
     <datalist id="list_box_options"></datalist>
     <datalist id="list_storage_room"></datalist>
     <datalist id="list_storage_fridge"></datalist>
+    <datalist id="list_fluorescent"></datalist>
+    <datalist id="list_method"></datalist>
 
 </div>
 
@@ -1733,7 +1735,7 @@
             const global = Object.values(item).some(v => String(v).toLowerCase().includes(q));
             const animal = !fA || item.animaltype === fA;
             const species = !fS || item.species === fS;
-            const method = !fM || item.method === fM;
+            const method = !fM || String(item.method ?? '').trim().toLowerCase() === fM.trim().toLowerCase();
             const box = !fB || item.box === fB;
             return dateMatch && global && animal && species && method && box;
         });
@@ -2066,6 +2068,12 @@
             el.classList.toggle('text-slate-500', !isEditable);
             if (el.tagName === 'SELECT') el.disabled = !isEditable;
         });
+        // ช่องพิมพ์ที่มีรายการแนะนำ: โหมด Use Item เอา list ออกชั่วคราว (เลือกจากรายการไม่ได้) แล้วใส่คืนเมื่อออกจากโหมด
+        Object.entries({ field_fluorescent: 'list_fluorescent', field_method: 'list_method' }).forEach(([id, listId]) => {
+            const el = document.getElementById(id); if (!el) return;
+            if (isMovement) el.removeAttribute('list');
+            else el.setAttribute('list', listId);
+        });
         document.getElementById('btn_add_slot').classList.toggle('hidden', isMovement);
     };
 
@@ -2145,7 +2153,15 @@
 
     document.getElementById('labForm').addEventListener('submit', async function(e) {
         e.preventDefault();
-        
+
+        // ปรับค่า Fluorescent/Label และ Method ก่อนตรวจช่องบังคับกรอกและก่อนสร้าง newItem (ไม่ทำในโหมด Use Item)
+        if (!isMovementMode) {
+            ['fluorescent', 'method'].forEach(key => {
+                const el = document.getElementById('field_' + key);
+                if (el) el.value = normalizeSuggestValue(key, el.value, dataList);
+            });
+        }
+
         // 1. Mandatory Field Validation
         const type = document.getElementById('field_itemType').value;
         let requiredFields = [];
@@ -2265,7 +2281,7 @@
             newItem.usagecount = (editOriginal && usageInput === '') ? (editOriginal.usagecount || 0) : parseInt(usageInput || 0);
         }
 
-        const labelsMap = { 'orderdate': 'Ordered Date', 'animaltype': 'Animal Type', 'species': 'Species', 'disease': 'Disease', 'primername': 'Name', 'originalname': 'Original Name', 'probe': 'Probe Seq', 'fluorescent': 'Fluorescent', 'targetgene': 'Target Gene', 'method': 'Method', 'forward': 'Forward', 'reward': 'Reward', 'company': 'Company', 'lotnumber': 'Lot No.', 'expirydate': 'Exp. Date', 'ta': 'TA', 'productsize': 'Size', 'storageroom': 'Storage Room', 'storagefridge': 'Refrigerator / Freezer', 'box': 'Box', 'slot': 'Slot', 'volume': 'Volume', 'lowlevel': 'Low Level', 'sampletype': 'Sample Type', 'folderno': 'Nucleic Acid Type', 'result': 'Result', 'seqresult': 'Seq Result', 'remark': 'Remark' };
+        const labelsMap = { 'orderdate': 'Ordered Date', 'animaltype': 'Animal Type', 'species': 'Species', 'disease': 'Disease', 'primername': 'Name', 'originalname': 'Original Name', 'probe': 'Probe Seq', 'fluorescent': 'Fluorescent/Label', 'targetgene': 'Target Gene', 'method': 'Method', 'forward': 'Forward', 'reward': 'Reward', 'company': 'Company', 'lotnumber': 'Lot No.', 'expirydate': 'Exp. Date', 'ta': 'TA', 'productsize': 'Size', 'storageroom': 'Storage Room', 'storagefridge': 'Refrigerator / Freezer', 'box': 'Box', 'slot': 'Slot', 'volume': 'Volume', 'lowlevel': 'Low Level', 'sampletype': 'Sample Type', 'folderno': 'Nucleic Acid Type', 'result': 'Result', 'seqresult': 'Seq Result', 'remark': 'Remark' };
 
         try {
             if (curId) {
@@ -2595,6 +2611,33 @@
         </div>`;
     };
 
+    // --- รายการแนะนำของช่อง Fluorescent/Label และ Method (พิมพ์เองได้) ---
+    const SUGGEST_DEFAULTS = {
+        fluorescent: ['FAM', 'HEX', 'VIC', 'Cy5', 'TXR'],
+        method: ['PCR', 'RT-PCR', 'qPCR', 'RT-qPCR', 'ddPCR'],
+    };
+
+    // ค่าเริ่มต้นตามลำดับ ตามด้วยค่าอื่นในข้อมูลเรียงตามตัวอักษร (ตัดช่องว่าง/ค่าว่าง/ค่าซ้ำแบบไม่สนตัวพิมพ์)
+    function suggestionList(key, items) {
+        const defaults = SUGGEST_DEFAULTS[key];
+        const seen = new Set(defaults.map(v => v.toLowerCase()));
+        const extra = [];
+        items.forEach(i => {
+            const v = String(i[key] ?? '').trim();
+            if (!v || seen.has(v.toLowerCase())) return;
+            seen.add(v.toLowerCase());
+            extra.push(v);
+        });
+        return [...defaults, ...extra.sort((a, b) => a.localeCompare(b))];
+    }
+
+    // ตัดช่องว่าง แล้วถ้าตรงกับรายการแนะนำ (ไม่สนตัวพิมพ์) ให้ใช้ตัวสะกดในรายการ
+    function normalizeSuggestValue(key, value, items) {
+        const v = String(value ?? '').trim();
+        if (!v) return '';
+        return suggestionList(key, items).find(s => s.toLowerCase() === v.toLowerCase()) || v;
+    }
+
     window.updateFilterSuggestions = function(items) {
         // อัปเดต Datalist ในฟอร์ม
         const map = { species: 'list_species', disease: 'list_disease', company: 'list_company', box: 'list_box_options', storageroom: 'list_storage_room', storagefridge: 'list_storage_fridge' };
@@ -2602,6 +2645,10 @@
             const list = document.getElementById(lid); if (!list) return;
             const u = [...new Set(items.map(i => i[k]))].filter(Boolean).sort();
             list.innerHTML = u.map(val => `<option value="${escapeHtml(val)}">`).join('');
+        });
+        Object.entries({ fluorescent: 'list_fluorescent', method: 'list_method' }).forEach(([k, lid]) => {
+            const list = document.getElementById(lid); if (!list) return;
+            list.innerHTML = suggestionList(k, items).map(val => `<option value="${escapeHtml(val)}">`).join('');
         });
 
         // อัปเดต Dropdown Filters ของตารางให้มีข้อมูลตามที่มีในระบบจริง
@@ -2611,14 +2658,34 @@
         Object.entries(filterMap).forEach(([k, selectId]) => {
             const sel = document.getElementById(selectId); if (!sel) return;
             const currentVal = sel.value; 
-            // ดึงค่าไม่ซ้ำจากข้อมูล
-            const u = [...new Set(items.map(i => i[k]))].filter(Boolean).sort();
+            // ดึงค่าไม่ซ้ำจากข้อมูล (Method รวมค่าที่ต่างกันแค่ตัวพิมพ์/ช่องว่างให้เหลือตัวเลือกเดียว)
+            const u = k === 'method' ? methodFilterValues(items) : [...new Set(items.map(i => i[k]))].filter(Boolean).sort();
             let html = `<option value="">${defaultText[k]}</option>`;
             html += u.map(val => `<option value="${escapeHtml(val)}">${escapeHtml(val)}</option>`).join('');
             sel.innerHTML = html;
-            sel.value = currentVal; 
+            if (k === 'method' && currentVal) {
+                // คงค่าที่เลือกไว้ โดยใช้ตัวสะกดในรายการใหม่ (ไม่สนตัวพิมพ์)
+                const match = u.find(v => v.toLowerCase() === currentVal.trim().toLowerCase());
+                sel.value = match ?? currentVal;
+            } else {
+                sel.value = currentVal; 
+            }
         });
     };
+
+    // ตัวเลือกของตัวกรอง Method: เฉพาะค่าที่มีในข้อมูล ตัดช่องว่าง รวมค่าที่ต่างแค่ตัวพิมพ์
+    // ตัวสะกด: ค่าเริ่มต้นใน SUGGEST_DEFAULTS.method ถ้าตรงกัน ไม่งั้นใช้ตัวแรกที่เจอ
+    function methodFilterValues(items) {
+        const defaults = new Map(SUGGEST_DEFAULTS.method.map(v => [v.toLowerCase(), v]));
+        const seen = new Map();
+        items.forEach(i => {
+            const v = String(i.method ?? '').trim();
+            if (!v) return;
+            const key = v.toLowerCase();
+            if (!seen.has(key)) seen.set(key, defaults.get(key) || v);
+        });
+        return [...seen.values()].sort();
+    }
 
     window.updateBoxOptions = function(items) {
         const modeItems = items.filter(i => {
@@ -2903,7 +2970,7 @@
             slotDetailHtml += `</div></div>`;
         }
 
-        const typeSpecific = (item.itemtype || '').toUpperCase() === 'PROBE' ? { probe: 'Probe Seq', fluorescent: 'Fluorescent' } : { forward: 'Forward', reward: 'Reward' };
+        const typeSpecific = (item.itemtype || '').toUpperCase() === 'PROBE' ? { probe: 'Probe Seq', fluorescent: 'Fluorescent/Label' } : { forward: 'Forward', reward: 'Reward' };
         const labels = { id: 'ID', orderdate: 'Ordered Date', itemtype: 'Type', animaltype: 'Animal', sampletype: 'Sample Type', species: 'Species', disease: 'Disease', primername: 'Name', originalname: 'Original Name', initialVolume: 'Initial Volume (Total)', volume: 'Current Volume (Total)', usagecount: 'Total Usage', targetgene: 'Gene', method: 'Method', ...typeSpecific, company: 'Company', lotnumber: 'Lot No.', expirydate: 'Exp. Date', ta: 'TA', productsize: 'Size', folderno: 'Nucleic Acid Type', result: 'Result', seqresult: 'Seq Result', remark: 'Remark', attachmentname: 'File Attached', storageroom: 'Storage Room', storagefridge: 'Refrigerator / Freezer', box: 'Box', lowlevel: 'Low Level Alert', reference: 'Reference' };
         document.getElementById('modalprimername').innerText = item.primername;
         
@@ -3031,7 +3098,7 @@
                     "Original Name": item.originalname || '-',
                     "Method": item.method || '-',
                     "Probe Seq": item.probe || '-',
-                    "Fluorescent": item.fluorescent || '-',
+                    "Fluorescent/Label": item.fluorescent || '-',
                     "Target Gene": item.targetgene || '-',
                     "Company": item.company || '-',
                     "Lot No.": item.lotnumber || '-',
