@@ -9,10 +9,10 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
     
     <script>
         tailwind.config = {
@@ -303,6 +303,20 @@
         
         .input-error { border-color: #ef4444 !important; background-color: #fef2f2 !important; }
         .error-text { color: #ef4444 !important; font-size: 0.75rem !important; margin-top: 4px; display: block; }
+
+        /* Modal ที่เป็นลูกโดยตรงของ <main> ไม่ให้ space-y-6 ดันลง */
+        #wp-lab-app-container main > .fixed { margin-top: 0 !important; }
+
+        /* จอแคบกว่า 1100px: ย้ายกล่องสลับโหมดลงเป็นแถวที่สองของ navbar */
+        @media (max-width: 1099px) {
+            .lab-navbar { flex-wrap: wrap; row-gap: 0.75rem; }
+            #app-mode-switcher {
+                position: static !important; left: auto !important; transform: none !important; max-width: none !important;
+                order: 3; flex-basis: 100%; width: 100%;
+            }
+            #app-mode-switcher > :first-child { margin-left: auto; }
+            #app-mode-switcher > :last-child { margin-right: auto; }
+        }
     </style>
 </head>
 <body>
@@ -420,7 +434,7 @@
             </div>
         </div>
         
-        <div class="absolute left-1/2 -translate-x-1/2 flex bg-slate-100 p-1 rounded-xl items-center gap-1 shadow-inner border border-slate-200 overflow-x-auto max-w-[55vw] md:max-w-none custom-scrollbar z-10">
+        <div id="app-mode-switcher" class="absolute left-1/2 -translate-x-1/2 flex bg-slate-100 p-1 rounded-xl items-center gap-1 shadow-inner border border-slate-200 overflow-x-auto max-w-[55vw] md:max-w-none custom-scrollbar z-10">
             <button id="modeDashboardBtn" onclick="switchAppMode('DASHBOARD')" class="whitespace-nowrap px-4 py-2 text-xs font-bold rounded-lg transition-all duration-300 text-brand-700 bg-white shadow-sm ring-1 ring-slate-200">
                 📊 Dashboard
             </button>
@@ -473,11 +487,11 @@
                 <button onclick="fetchData()" class="btn-outline" title="Refresh Data">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" /></svg>
                 </button>
-                <button id="btn-new-primer" onclick="toggleForm('PRIMER')" class="btn-primary flex items-center gap-2">
+                <button id="btn-new-primer" onclick="toggleForm('PRIMER')" class="btn-primary flex items-center gap-2 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                     New Primer
                 </button>
-                <button id="btn-new-probe" onclick="toggleForm('PROBE')" class="btn-primary bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2">
+                <button id="btn-new-probe" onclick="toggleForm('PROBE')" class="btn-primary bg-indigo-600 hover:bg-indigo-700 flex items-center gap-2 whitespace-nowrap">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6" /></svg>
                     New Probe
                 </button>
@@ -587,9 +601,9 @@
                                     </div>
                                     <div><label class="block text-xs font-bold text-slate-600 mb-1">Sequence result</label><textarea name="seqResult" id="field_seqResult" rows="3" class="w-full rounded-lg border-slate-300 p-2.5 text-sm font-mono border outline-none"></textarea></div> <div><label class="block text-xs font-bold text-slate-600 mb-1">Remark</label><textarea name="remark" id="field_remark" rows="2" class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none"></textarea></div>
                                     <div>
-                                        <label class="block text-xs font-bold text-slate-600 mb-1">Attachment <span class="text-[10px] text-slate-400 font-normal">(Max 5MB)</span></label>
+                                        <label class="block text-xs font-bold text-slate-600 mb-1">Attachment <span class="text-[10px] text-slate-400 font-normal">(Max 700KB)</span></label>
                                         <input type="file" id="field_attachment" class="w-full text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-xs file:font-bold file:bg-brand-50 file:text-brand-700 hover:file:bg-brand-100 border border-slate-200 rounded-lg bg-white cursor-pointer" accept=".pdf,.jpg,.jpeg,.png,.doc,.docx">
-                                        <p class="text-[10px] text-emerald-600 mt-1">*(ขนาดไฟล์ต้องไม่เกิน 5MB)</p>
+                                        <p class="text-[10px] text-emerald-600 mt-1">*(ขนาดไฟล์ต้องไม่เกิน 700KB)</p>
                                     </div>
                                 </div>
                             </div>
@@ -837,7 +851,7 @@
             <div class="lab-card p-6">
                 <h2 class="text-lg font-bold text-slate-800 mb-4 border-b pb-2">Admin Panel - เพิ่มผู้ใช้งานใหม่</h2>
                 <form id="adminAddUserForm" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div><label class="block text-xs font-bold text-slate-600 mb-1">ชื่อ-นามสกุล</label><input type="text" id="admin_newName" required class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none"></div>
+                    <div><label class="block text-xs font-bold text-slate-600 mb-1">ชื่อ-นามสกุล</label><input type="text" id="admin_newName" required maxlength="100" class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none"></div>
                     <div><label class="block text-xs font-bold text-slate-600 mb-1">Email</label><input type="email" id="admin_newEmail" required class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none"></div>
                     <div><label class="block text-xs font-bold text-slate-600 mb-1">รหัสผ่านเบื้องต้น</label><input type="password" id="admin_newPass" required minlength="6" class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none"></div>
                     <div><label class="block text-xs font-bold text-slate-600 mb-1">Role</label><select id="admin_newRole" class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none"><option value="user">ผู้ใช้งาน (User)</option><option value="admin">ผู้ดูแลระบบ (Admin)</option><option value="superadmin">ผู้ดูแลสูงสุด (Super Admin)</option></select></div>
@@ -867,7 +881,7 @@
             <div class="relative bg-white w-full max-w-sm rounded-2xl p-6 shadow-2xl animate-in zoom-in-95">
                 <h3 class="font-bold text-lg mb-4 text-slate-800 border-b pb-2">แก้ไขโปรไฟล์</h3>
                 <form id="profileForm" class="space-y-4">
-                    <div><label class="block text-xs font-bold text-slate-600 mb-1">ชื่อ-นามสกุล (Display Name)</label><input type="text" id="profileName" required class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none"></div>
+                    <div><label class="block text-xs font-bold text-slate-600 mb-1">ชื่อ-นามสกุล (Display Name)</label><input type="text" id="profileName" required maxlength="100" class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none"></div>
                     <div class="flex justify-end gap-2 pt-4">
                         <button type="button" onclick="document.getElementById('profileModal').classList.add('hidden')" class="btn-outline px-4">ยกเลิก</button>
                         <button type="submit" class="btn-primary px-4">บันทึกข้อมูล</button>
@@ -887,7 +901,7 @@
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1">ชื่อ-นามสกุล</label>
-                        <input type="text" id="edituserName" required class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none focus:ring-2 focus:ring-brand-500">
+                        <input type="text" id="edituserName" required maxlength="100" class="w-full rounded-lg border-slate-300 p-2.5 text-sm border outline-none focus:ring-2 focus:ring-brand-500">
                     </div>
                     <div>
                         <label class="block text-xs font-bold text-slate-600 mb-1">ระดับสิทธิ์ (Role)</label>
@@ -1021,7 +1035,7 @@
 <script type="module">
     import { initializeApp } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-app.js";
     import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-analytics.js";
-    import { getFirestore, collection, addDoc, setDoc, updateDoc, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, query, orderBy, limit, writeBatch } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
+    import { getFirestore, collection, addDoc, setDoc, updateDoc, deleteDoc, doc, getDoc, onSnapshot, serverTimestamp, query, orderBy, limit, writeBatch, runTransaction } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-firestore.js";
     import { getAuth, signInWithEmailAndPassword, createUserWithEmailAndPassword, signOut, onAuthStateChanged, updatePassword } from "https://www.gstatic.com/firebasejs/10.8.0/firebase-auth.js";
 
     // --- CONFIGURATION ---
@@ -1053,7 +1067,18 @@
     };
 
     function getuserName(email) {
-        return USER_MAPPING[email] || email; 
+        return USER_MAPPING[email] || email;
+    }
+
+    // --- XSS: แปลงข้อมูลก่อนใส่ลงสตริง HTML ---
+    function escapeHtml(value) {
+        if (value === null || value === undefined) return '';
+        return String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    }
+
+    // ค่าที่ส่งเป็นอาร์กิวเมนต์ใน onclick="fn(${jsArg(x)})" (เป็นสตริง JS ที่ escape สำหรับ attribute แล้ว)
+    function jsArg(value) {
+        return escapeHtml(JSON.stringify(String(value ?? '')));
     }
 
     // --- AUTH LOGIC ---
@@ -1386,33 +1411,44 @@
     let historyTotalPages = 1;
     let currentSeqTargetId = null;
     let copySourceId = null; // ID ต้นฉบับเมื่อเปิดฟอร์มจากปุ่ม Copy
+    let dataUnsubscribers = []; // ตัวยกเลิก onSnapshot ของ fetchData (กันการลงทะเบียนซ้อนเมื่อกดรีเฟรช)
+    let unsubscribeAdminUsers = null;
+    let adminUsersMap = {}; // ข้อมูล users จาก snapshot ล่าสุดของหน้าจัดการผู้ใช้ (key = email)
 
-    window.fetchData = function() { 
+    // รายการนี้อยู่ใน collection ไหนจริง (ดูจากชุดข้อมูลที่โหลดมา ไม่ใช่จาก itemtype)
+    function collectionOf(item) {
+        return dnaDataList.includes(item) ? DNA_COLLECTION : COLLECTION_NAME;
+    }
+
+    window.fetchData = function() {
+        dataUnsubscribers.forEach(unsub => unsub());
+        dataUnsubscribers = [];
+
         // ดึงข้อมูล Primer/Probe
-        onSnapshot(collection(db, COLLECTION_NAME), (snapshot) => {
+        dataUnsubscribers.push(onSnapshot(collection(db, COLLECTION_NAME), (snapshot) => {
             primerDataList = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             dataList = [...primerDataList, ...dnaDataList];
             filterTable(); updateFilterSuggestions(dataList); updateBoxOptions(dataList); updateDashboard();
-        }, (error) => { console.error("Error fetching primer data: ", error); });
+        }, (error) => { console.error("Error fetching primer data: ", error); }));
 
         // ดึงข้อมูล DNA/cDNA
-        onSnapshot(collection(db, DNA_COLLECTION), (snapshot) => {
+        dataUnsubscribers.push(onSnapshot(collection(db, DNA_COLLECTION), (snapshot) => {
             dnaDataList = snapshot.docs.map(doc => ({ ...doc.data(), id: doc.id }));
             dataList = [...primerDataList, ...dnaDataList];
             filterTable(); updateFilterSuggestions(dataList); updateBoxOptions(dataList); updateDashboard();
-        }, (error) => { console.error("Error fetching DNA data: ", error); });
+        }, (error) => { console.error("Error fetching DNA data: ", error); }));
 
         const qPrimer = query(collection(db, LOGS_COLLECTION_PRIMER), orderBy("ts", "desc"), limit(200));
-        onSnapshot(qPrimer, (snapshot) => {
+        dataUnsubscribers.push(onSnapshot(qPrimer, (snapshot) => {
             onlineLogsPrimer = snapshot.docs.map(doc => doc.data());
             if (currentAppMode !== 'DNA_cDNA') renderHistory();
-        });
+        }));
 
         const qDNA = query(collection(db, LOGS_COLLECTION_DNA), orderBy("ts", "desc"), limit(200));
-        onSnapshot(qDNA, (snapshot) => {
+        dataUnsubscribers.push(onSnapshot(qDNA, (snapshot) => {
             onlineLogsDNA = snapshot.docs.map(doc => doc.data());
             if (currentAppMode === 'DNA_cDNA' || currentAppMode === 'DASHBOARD') renderHistory();
-        });
+        }));
     };
 
     window.updateDashboard = function() {
@@ -1429,9 +1465,17 @@
             return !i.isoutofstock && (t === 'DNA' || t === 'CDNA'); 
         }).length;
         
-        // นับ Out of stock และ Low Level รวมทั้งหมด
-        const out = dataList.filter(i => i.isoutofstock).length;
-        const low = dataList.filter(i => !i.isoutofstock && parseFloat(i.volume) <= parseFloat(i.lowlevel || 0) && parseFloat(i.lowlevel || 0) > 0).length;
+        // นับ Out of stock (รวมรายการที่ปริมาตรหมดแต่ยังไม่ย้าย) และ Low Level (ยังมีของเหลือแต่ไม่เกิน lowlevel)
+        const out = dataList.filter(i => {
+            if (i.isoutofstock) return true;
+            const vol = parseFloat(i.volume);
+            return !isNaN(vol) && vol <= 0;
+        }).length;
+        const low = dataList.filter(i => {
+            const vol = parseFloat(i.volume);
+            const lowLevel = parseFloat(i.lowlevel || 0);
+            return !i.isoutofstock && vol > 0 && vol <= lowLevel && lowLevel > 0;
+        }).length;
 
         if(document.getElementById('dash-stock-count')) document.getElementById('dash-stock-count').innerText = p_stock;
         if(document.getElementById('dash-dna-count')) document.getElementById('dash-dna-count').innerText = d_stock;
@@ -1452,8 +1496,10 @@
             const hours = String(now.getHours()).padStart(2, '0');
             const minutes = String(now.getMinutes()).padStart(2, '0');
             const seconds = String(now.getSeconds()).padStart(2, '0'); // เพิ่มวินาทีกันซ้ำ
-            
-            const customLogID = `${day}-${month}-${year} ${hours}.${minutes}.${seconds}`;
+            // ต่อท้ายตัวอักษรสุ่ม 6 ตัว กัน log ที่เกิดในวินาทีเดียวกันเขียนทับ ID เดิม (rules ไม่ให้แก้ log)
+            const suffix = Array.from({ length: 6 }, () => 'abcdefghijklmnopqrstuvwxyz0123456789'[Math.floor(Math.random() * 36)]).join('');
+
+            const customLogID = `${day}-${month}-${year} ${hours}.${minutes}.${seconds}-${suffix}`;
 
             let targetLogCol = LOGS_COLLECTION_PRIMER;
             if (itemType === 'DNA' || itemType === 'cDNA' || itemType === 'CDNA') targetLogCol = LOGS_COLLECTION_DNA;
@@ -1461,16 +1507,25 @@
             else if (currentAppMode === 'DNA_cDNA') targetLogCol = LOGS_COLLECTION_DNA;
 
             // เปลี่ยนจาก addDoc เป็น setDoc เพื่อกำหนด ID เอง
-            await setDoc(doc(db, targetLogCol, customLogID), { 
-                ts: new Date().toISOString(), 
-                action: action, 
-                name: name, 
-                details: details, 
-                by: userName, 
-                email: userEmail 
+            await setDoc(doc(db, targetLogCol, customLogID), {
+                ts: new Date().toISOString(),
+                action: action,
+                name: String(name ?? '-'),
+                details: details,
+                by: userName,
+                email: userEmail,
+                createdAt: serverTimestamp() // เวลาจากเซิร์ฟเวอร์ (การเรียงและแสดงผลยังใช้ ts)
             });
         } catch (e) { console.error("Error saving log:", e); }
     };
+
+    // details ของ log เป็น array เสมอ (log เก่าอาจเป็นข้อความ ไม่มีค่า หรือชนิดอื่น)
+    function logDetailsOf(log) {
+        const d = log ? log.details : undefined;
+        if (Array.isArray(d)) return d;
+        if (typeof d === 'string' && d.trim() !== '') return [d];
+        return [];
+    }
 
     window.renderHistory = function(resetPage = false) {
         if (resetPage) historyCurrentPage = 1;
@@ -1494,7 +1549,7 @@
             const searchMatch = !qText || String(l.name).toLowerCase().includes(qText) || String(l.action).toLowerCase().includes(qText) || (l.by && String(l.by).toLowerCase().includes(qText));
             let fieldMatch = true;
             if (fField) {
-                const detailStr = (l.details || []).join(' ').toLowerCase();
+                const detailStr = logDetailsOf(l).join(' ').toLowerCase();
                 if (fField === 'name') fieldMatch = String(l.name).toLowerCase().includes(qText) || detailStr.includes('name');
                 if (fField === 'volume') fieldMatch = detailStr.includes('vol') || detailStr.includes('ปริมาณ');
                 if (fField === 'box') fieldMatch = detailStr.includes('box') || detailStr.includes('slot') || detailStr.includes('storage');
@@ -1518,12 +1573,12 @@
                 <div class="flex items-center gap-3">
                     <div class="w-8 h-8 rounded-full bg-slate-50 border flex items-center justify-center text-brand-600 font-bold text-xs">LOG</div>
                     <div class="flex-1">
-                        <span class="block text-xs font-bold text-slate-800">${l.name}</span>
-                        <span class="text-[10px] font-medium text-slate-400 uppercase">${l.action} • ${formatDateFull(l.ts)}</span>
+                        <span class="block text-xs font-bold text-slate-800">${escapeHtml(l.name)}</span>
+                        <span class="text-[10px] font-medium text-slate-400 uppercase">${escapeHtml(l.action)} • ${escapeHtml(formatDateFull(l.ts))}</span>
                     </div>
-                    <div class="text-right"><span class="text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full border">By: ${l.by || 'Unknown'}</span></div>
+                    <div class="text-right"><span class="text-[9px] font-bold text-slate-500 bg-slate-100 px-2 py-1 rounded-full border">By: ${escapeHtml(l.by || 'Unknown')}</span></div>
                 </div>
-                ${l.details && l.details.length ? `<div class="mt-2 pl-11"><div class="text-[10px] text-slate-500 font-mono bg-slate-50 p-2 rounded-lg border border-slate-100">${l.details.map(d => `<div class="truncate">• ${d}</div>`).join('')}</div></div>` : ''}
+                ${logDetailsOf(l).length ? `<div class="mt-2 pl-11"><div class="text-[10px] text-slate-500 font-mono bg-slate-50 p-2 rounded-lg border border-slate-100">${logDetailsOf(l).map(d => `<div class="truncate">• ${escapeHtml(d)}</div>`).join('')}</div></div>` : ''}
             </div>`).join('');
     };
 
@@ -1548,7 +1603,7 @@
         document.getElementById('rowCountDisplay').innerText = `${filteredList.length} Items`;
         
         tbody.innerHTML = items.map((item, index) => {
-            const displayVol = activeTab === 'all' ? (item.initialVolume || item.volume) : item.volume;
+            const displayVol = item.volume;
             const low = parseFloat(item.lowlevel || 0);
             const vol = parseFloat(displayVol || 0);
             const isLow = vol <= low && low > 0;
@@ -1570,17 +1625,17 @@
             if (activeTab === 'movement') {
                 if (parseFloat(item.volume) === 0) {
                     if (canEdit) {
-                        actionBtns = `<button onclick="moveOutOfStock('${item.id}')" class="px-3 py-1 bg-amber-500 text-white text-[10px] font-bold rounded shadow hover:bg-amber-600 uppercase">Out of stock</button>`;
+                        actionBtns = `<button onclick="moveOutOfStock(${jsArg(item.id)})" class="px-3 py-1 bg-amber-500 text-white text-[10px] font-bold rounded shadow hover:bg-amber-600 uppercase">Out of stock</button>`;
                     } else {
                         actionBtns = `<span class="text-[10px] text-amber-500 font-bold">Empty</span>`;
                     }
                 } else {
                     // อนุญาตให้ User ทุกระดับกดตัดสต๊อกได้
-                    actionBtns = `<button onclick="openMovementMode('${item.id}')" class="px-3 py-1 bg-indigo-600 text-white text-[10px] font-bold rounded shadow hover:bg-indigo-700 uppercase">Use Item</button>`;
+                    actionBtns = `<button onclick="openMovementMode(${jsArg(item.id)})" class="px-3 py-1 bg-indigo-600 text-white text-[10px] font-bold rounded shadow hover:bg-indigo-700 uppercase">Use Item</button>`;
                 }
             } else if (activeTab === 'stock' && activeStockSub === 'out-of-stock') { 
                 if (canEdit) {
-                    actionBtns = `<button onclick="undoOutOfStock('${item.id}')" class="px-3 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow hover:bg-emerald-700 uppercase">Restore Stock</button>`;
+                    actionBtns = `<button onclick="undoOutOfStock(${jsArg(item.id)})" class="px-3 py-1 bg-emerald-600 text-white text-[10px] font-bold rounded shadow hover:bg-emerald-700 uppercase">Restore Stock</button>`;
                 } else {
                     actionBtns = `<span class="text-[10px] text-slate-400">View Only</span>`;
                 }
@@ -1588,9 +1643,9 @@
             else if (activeTab !== 'all' && activeTab !== 'export') {
                 if (canEdit) {
                     actionBtns = `<div class="flex justify-end gap-1">
-                        <button onclick="copyItem('${item.id}')" class="btn-action" title="Copy"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></button>
-                        <button onclick="openEditMode('${item.id}')" class="btn-action" title="Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
-                        <button onclick="openDeleteModal('${item.id}', '${item.primername}')" class="btn-action text-red-400 hover:text-red-600" title="Delete"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
+                        <button onclick="copyItem(${jsArg(item.id)})" class="btn-action" title="Copy"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"/></svg></button>
+                        <button onclick="openEditMode(${jsArg(item.id)})" class="btn-action" title="Edit"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"/></svg></button>
+                        <button onclick="openDeleteModal(${jsArg(item.id)})" class="btn-action text-red-400 hover:text-red-600" title="Delete"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"/></svg></button>
                     </div>`;
                 } else {
                     actionBtns = `<span class="text-[10px] text-slate-400">View Only</span>`;
@@ -1599,7 +1654,7 @@
 
             let boxSlotDisplay = (item.box && item.slot) ? (item.box + ' / ' + item.slot) : (item.isoutofstock ? (item.prevbox + '/' + item.prevslot) : '-');
             let boxSlotStyle = (item.box && item.slot) ? 'text-brand-700 bg-brand-50 border-brand-100' : 'text-slate-400 bg-slate-100 border-slate-200 italic';
-            let displayID = item.id; if (displayID.length > 6 && isNaN(displayID)) { displayID = displayID.substring(0,6) + "..."; }
+            let displayID = String(item.id); if (displayID.length > 6 && isNaN(displayID)) { displayID = displayID.substring(0,6) + "..."; }
             
             // แสดงชื่อรายการ
             let displayMainName = item.primername || '-';
@@ -1614,17 +1669,17 @@
             // เช็คว่ากำลังอยู่หน้าแดชบอร์ดรวมหรือไม่
             const showCategory = currentAppMode === 'DASHBOARD';
 
-            return `<tr class="custom-table-row transition-all cursor-pointer hover:shadow-sm" onclick="showDetails('${item.id}')">
+            return `<tr class="custom-table-row transition-all cursor-pointer hover:shadow-sm" onclick="showDetails(${jsArg(item.id)})">
                 <td class="px-4 py-3 text-center text-slate-500 font-mono text-[10px]">${startIdx + index + 1}</td>
-                <td class="px-4 py-3 text-slate-700 text-center text-[10px] font-semibold whitespace-nowrap">${formatDateOnly(item.orderdate)}</td>
-                <td class="px-4 py-3 text-slate-500 text-center font-mono text-[10px]">${displayID}</td>
+                <td class="px-4 py-3 text-slate-700 text-center text-[10px] font-semibold whitespace-nowrap">${escapeHtml(formatDateOnly(item.orderdate))}</td>
+                <td class="px-4 py-3 text-slate-500 text-center font-mono text-[10px]">${escapeHtml(displayID)}</td>
                 ${showCategory ? `<td class="px-4 py-3 text-center whitespace-nowrap">${categoryBadge}</td>` : ''}
-                <td class="px-4 py-3 text-center"><span class="badge badge-gray text-[9px] border border-slate-200">${item.animaltype || '-'}</span></td>
-                <td class="px-4 py-3 text-center font-semibold text-brand-800">${displayMainName} <span class="text-[10px] text-slate-400 font-normal block">${item.species || ''}</span>${expBadge}</td>
-                <td class="px-4 py-3 text-center text-[10px] font-semibold text-slate-600 whitespace-nowrap">${item.storageroom || '-'}</td>
-                <td class="px-4 py-3 text-center text-[10px] font-semibold text-slate-600 whitespace-nowrap">${item.storagefridge || '-'}</td>
-                <td class="px-4 py-3 text-center whitespace-nowrap"><span class="badge ${boxSlotStyle} border text-[10px] font-mono">${boxSlotDisplay}</span></td>
-                <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${volColorClass}">${displayVol || 0}</span></td>
+                <td class="px-4 py-3 text-center"><span class="badge badge-gray text-[9px] border border-slate-200">${escapeHtml(item.animaltype || '-')}</span></td>
+                <td class="px-4 py-3 text-center font-semibold text-brand-800">${escapeHtml(displayMainName)} <span class="text-[10px] text-slate-400 font-normal block">${escapeHtml(item.species || '')}</span>${expBadge}</td>
+                <td class="px-4 py-3 text-center text-[10px] font-semibold text-slate-600 whitespace-nowrap">${escapeHtml(item.storageroom || '-')}</td>
+                <td class="px-4 py-3 text-center text-[10px] font-semibold text-slate-600 whitespace-nowrap">${escapeHtml(item.storagefridge || '-')}</td>
+                <td class="px-4 py-3 text-center whitespace-nowrap"><span class="badge ${boxSlotStyle} border text-[10px] font-mono">${escapeHtml(boxSlotDisplay)}</span></td>
+                <td class="px-4 py-3 text-center"><span class="px-2 py-0.5 rounded text-[10px] font-bold ${volColorClass}">${escapeHtml(displayVol || 0)}</span></td>
                 ${(activeTab !== 'all' && activeTab !== 'export') ? `<td class="px-4 py-3 text-right" onclick="event.stopPropagation();">${actionBtns}</td>` : ''}
             </tr>`;
         }).join('');
@@ -1639,7 +1694,10 @@
         const fM = document.getElementById('filterMethod').value;
         const fB = document.getElementById('filterBox').value;
         const fStat = document.getElementById('filterStatus').value;
-        
+        // วันเริ่มต้นนับตั้งแต่ 00:00:00 และวันสิ้นสุดนับถึง 23:59:59.999 ตามเวลาของเครื่องผู้ใช้ (แบบเดียวกับ renderHistory)
+        const fromTime = historyDayBoundary(dFrom, false);
+        const toTime = historyDayBoundary(dTo, true);
+
         filteredList = dataList.filter(item => {
             // บังคับแปลงตัวพิมพ์ใหญ่เสมอเพื่อป้องกันบัคข้อมูลเก่า
             let type = (item.itemtype || 'PRIMER').toUpperCase(); 
@@ -1670,7 +1728,8 @@
                 }
             } else if (activeTab === 'movement') { if (item.isoutofstock) return false; }
 
-            const dateMatch = (!dFrom || new Date(item.orderdate) >= new Date(dFrom)) && (!dTo || new Date(item.orderdate) <= new Date(dTo));
+            const orderTime = new Date(item.orderdate).getTime();
+            const dateMatch = (fromTime === null || orderTime >= fromTime) && (toTime === null || orderTime <= toTime);
             const global = Object.values(item).some(v => String(v).toLowerCase().includes(q));
             const animal = !fA || item.animaltype === fA;
             const species = !fS || item.species === fS;
@@ -1788,7 +1847,7 @@
 
     window.moveOutOfStock = async function(id) {
         const item = dataList.find(d => d.id === id); if (!item) return;
-        const targetCollection = (item.itemtype === 'DNA' || item.itemtype === 'cDNA') ? DNA_COLLECTION : COLLECTION_NAME;
+        const targetCollection = collectionOf(item);
         try {
             await updateDoc(doc(db, targetCollection, id), { prevbox: item.box, prevslot: item.slot, box: "", slot: "", isoutofstock: true });
             saveHistoryLog("Moved Out of Stock", item.primername, [`Storage: ${item.box}/${item.slot} -> Out of stock`], item.itemtype);
@@ -1815,7 +1874,7 @@
         const item = dataList.find(d => d.id === id); if (!item) return;
         const restoreError = checkRestoreConflict(item, dataList);
         if (restoreError) { showToast(restoreError, "error"); return; }
-        const targetCollection = (item.itemtype === 'DNA' || item.itemtype === 'cDNA') ? DNA_COLLECTION : COLLECTION_NAME;
+        const targetCollection = collectionOf(item);
         try {
             await updateDoc(doc(db, targetCollection, id), { box: item.prevbox, slot: item.prevslot, isoutofstock: false });
             saveHistoryLog("Restored Stock", item.primername, [`Out of stock -> Storage: ${item.prevbox}/${item.prevslot}`], item.itemtype);
@@ -1944,37 +2003,6 @@
         }
     };
 
-    window.handleSequenceOCR = async function(event) {
-        const file = event.target.files[0];
-        if (!file) return;
-        
-        const labelText = document.getElementById('scanTextLabel');
-        const originalText = labelText.innerText;
-        labelText.innerText = 'Scanning...';
-        
-        try {
-            const result = await Tesseract.recognize(file, 'eng');
-            // กรองเอาเฉพาะตัวอักษรเบส ตัดเว้นวรรคและอักขระพิเศษทิ้งอัตโนมัติ
-            let text = result.data.text.replace(/[^ATCGUatcgu]/g, '').toUpperCase();
-            
-            if (text.length > 0) {
-                const input = document.getElementById('seqEditInput');
-                input.value += text; // นำข้อความที่สแกนได้มาต่อท้าย
-                
-                input.dispatchEvent(new Event('input')); // ให้ระบบนับ bp ใหม่
-                showToast("ดึงข้อมูลเบสสำเร็จ", "success");
-            } else {
-                showToast("ไม่พบตัวอักษรเบสในรูปภาพ", "error");
-            }
-        } catch (err) {
-            console.error(err);
-            showToast("สแกนไม่สำเร็จ กรุณาลองใหม่อีกครั้ง", "error");
-        } finally {
-            labelText.innerText = originalText;
-            event.target.value = ''; 
-        }
-    };
-
     window.addSlotField = function(slotVal = "", volVal = "") {
         const container = document.getElementById('slotInputContainer');
         const div = document.createElement('div'); 
@@ -1984,7 +2012,7 @@
         let volInputHtml = "";
         
         if (!isMovementMode) {
-            volInputHtml = `<input type="number" placeholder="Vol." value="${volVal}" class="volume-input w-24 rounded-lg bg-white border-slate-300 p-2.5 text-sm font-bold border outline-none text-emerald-700 focus:ring-2 ring-emerald-100" oninput="calculateTotalVolume()">`;
+            volInputHtml = `<input type="number" placeholder="Vol." value="${escapeHtml(volVal)}" class="volume-input w-24 rounded-lg bg-white border-slate-300 p-2.5 text-sm font-bold border outline-none text-emerald-700 focus:ring-2 ring-emerald-100" oninput="calculateTotalVolume()">`;
             btnHtml = '<button type="button" onclick="this.parentElement.remove(); calculateTotalVolume()" class="p-2.5 text-red-500 font-bold hover:bg-red-50 rounded-lg">✕</button>';
         } else {
             volInputHtml = ""; 
@@ -1993,7 +2021,7 @@
 
         div.innerHTML = `
             <div class="flex-1 flex gap-1">
-                <input type="text" name="slot" value="${slotVal}" class="slot-input w-full rounded-lg bg-slate-50 p-2.5 text-sm border text-center font-bold outline-none border-slate-300" ${isMovementMode ? 'readonly' : 'readonly'}>
+                <input type="text" name="slot" value="${escapeHtml(slotVal)}" class="slot-input w-full rounded-lg bg-slate-50 p-2.5 text-sm border text-center font-bold outline-none border-slate-300" ${isMovementMode ? 'readonly' : 'readonly'}>
                 <button type="button" onclick="openSlotPicker(this)" class="p-2.5 bg-slate-800 text-white rounded-lg ${isMovementMode ? 'hidden' : 'hover:bg-slate-700'}">
                     <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /></svg>
                 </button>
@@ -2195,8 +2223,8 @@
         const fileInput = document.getElementById('field_attachment');
         if (fileInput && fileInput.files.length > 0) {
             const file = fileInput.files[0];
-            if (file.size > 5 * 1024 * 1024) {
-                alert("ขนาดไฟล์เกิน 5MB กรุณาเลือกไฟล์ขนาดเล็กลง");
+            if (file.size > 700 * 1024) {
+                showToast("ขนาดไฟล์เกิน 700KB กรุณาเลือกไฟล์ขนาดเล็กลง", "error");
                 return;
             }
             newItem.attachmentname = file.name;
@@ -2253,12 +2281,15 @@
                     const slotIndex = slots.findIndex(s => s.trim() === window.selectedMovementSlot);
 
                     // Update arrays
-                    let currentVolumes = originalItem.volumes ? [...originalItem.volumes] : [originalItem.volume];
-                    let currentUsageCounts = originalItem.usagecounts ? [...originalItem.usagecounts] : [originalItem.usagecount || 0];
+                    // แปลงเป็นตัวเลขทุกช่อง (ข้อมูลเก่าอาจเป็นข้อความ เช่น "3") กันผลรวมกลายเป็นข้อความต่อกัน; แปลงไม่ได้ = 0
+                    const toNum = v => { const n = parseFloat(v); return isNaN(n) ? 0 : n; };
+                    const toInt = v => { const n = parseInt(v, 10); return isNaN(n) ? 0 : n; };
+                    let currentVolumes = (originalItem.volumes ? [...originalItem.volumes] : [originalItem.volume]).map(toNum);
+                    let currentUsageCounts = (originalItem.usagecounts ? [...originalItem.usagecounts] : [originalItem.usagecount || 0]).map(toInt);
 
                     // Ensure arrays are long enough (in case added slots later without init)
-                    while(currentVolumes.length < slots.length) currentVolumes.push(0);
-                    while(currentUsageCounts.length < slots.length) currentUsageCounts.push(0);
+                    while(currentVolumes.length < slots.length) currentVolumes.push(toNum(0));
+                    while(currentUsageCounts.length < slots.length) currentUsageCounts.push(toInt(0));
 
                     // ตรวจปริมาตรที่ใช้ก่อนคำนวณและก่อนเขียนข้อมูล (ไม่ผ่าน = ไม่นับการใช้และไม่บันทึก log)
                     const usageError = validateUsedAmount(document.getElementById('field_usedAmount').value, slotIndex, currentVolumes);
@@ -2280,7 +2311,7 @@
 
                     diffs.push(`Used: ${usageVal} ul from Slot: ${window.selectedMovementSlot || 'Main'}`);
                     diffs.push(`Slot Volume: ${oldSlotVol} -> ${newSlotVol}`);
-                    saveHistoryLog("Usage Recorded", newItem.primername, diffs, newItem.itemtype);
+                    saveHistoryLog("Usage Recorded", originalItem.primername, diffs, originalItem.itemtype);
                 } else {
                     // Edit Mode: คงปริมาตรเริ่มต้นและจำนวนครั้งที่ใช้ตาม Slot เดิม
                     const inventory = computeEditInventory(originalItem, newItem.slot ? newItem.slot.split(',') : [], newItem.volumes || []);
@@ -2300,18 +2331,35 @@
                     });
                     saveHistoryLog("Detail Updated", newItem.primername, diffs, newItem.itemtype);
                 }
-                const targetCollection = (type === 'DNA' || type === 'cDNA' || type === 'CDNA') ? DNA_COLLECTION : COLLECTION_NAME;
-                await updateDoc(doc(db, targetCollection, curId), newItem);
+                const targetCollection = collectionOf(originalItem);
+                // Use Item เขียนเฉพาะช่องปริมาตร ส่วนโหมด Edit เขียนทั้งก้อนเหมือนเดิม
+                const updateData = isMovementMode
+                    ? { volume: newItem.volume, volumes: newItem.volumes, usagecount: newItem.usagecount, usagecounts: newItem.usagecounts }
+                    : newItem;
+                await updateDoc(doc(db, targetCollection, curId), updateData);
             } else {
                 newItem.orderdate = newItem.orderdate ? new Date(newItem.orderdate).toISOString() : new Date().toISOString();
                 newItem.initialVolume = newItem.volume;
                 newItem.initialVolumes = newItem.volumes; // Store array of initial volumes
                 newItem.usagecounts = newItem.volumes.map(() => 0); // Init usage counts per slot
                 newItem.isoutofstock = false;
-                const customId = generateNextID();
-                newItem.id = customId; 
                 const targetCollection = (type === 'DNA' || type === 'cDNA' || type === 'CDNA') ? DNA_COLLECTION : COLLECTION_NAME;
-                await setDoc(doc(db, targetCollection, customId), newItem);
+                // จอง ID ใน transaction: ถ้า ID ถูกใช้แล้วใน collection ใดก็ตาม (เช่น อีกเครื่องบันทึกพร้อมกัน) ให้เลื่อนไป ID ถัดไป
+                const startId = parseInt(generateNextID(), 10);
+                const customId = await runTransaction(db, async (tx) => {
+                    for (let attempt = 0; attempt < 10; attempt++) {
+                        const candidate = String(startId + attempt).padStart(4, '0');
+                        const primerSnap = await tx.get(doc(db, COLLECTION_NAME, candidate));
+                        const dnaSnap = await tx.get(doc(db, DNA_COLLECTION, candidate));
+                        if (!primerSnap.exists() && !dnaSnap.exists()) {
+                            tx.set(doc(db, targetCollection, candidate), { ...newItem, id: candidate });
+                            return candidate;
+                        }
+                    }
+                    return null;
+                });
+                if (!customId) { showToast("ไม่สามารถสร้างรหัสรายการใหม่ได้ กรุณากดบันทึกอีกครั้ง", "error"); return; }
+                newItem.id = customId;
                 const regDetails = [`ID: ${customId}`, "Initial Registration"];
                 if (copySourceId) regDetails.push(`Copied from ID: ${copySourceId}`);
                 saveHistoryLog("Registered New", newItem.primername, regDetails, newItem.itemtype);
@@ -2529,21 +2577,21 @@
         dataP.innerHTML = `<div class="bg-white p-6 rounded-2xl border border-brand-100 shadow-xl space-y-4 animate-in zoom-in-95">
             <div class="flex justify-between items-start">
                 <div>
-                    <span class="px-3 py-1 bg-brand-600 text-white text-[10px] font-bold rounded-full uppercase mb-2 inline-block">Slot ${slot}</span>
-                    <h3 class="text-xl font-bold leading-tight text-slate-800">${item.primername}</h3>
+                    <span class="px-3 py-1 bg-brand-600 text-white text-[10px] font-bold rounded-full uppercase mb-2 inline-block">Slot ${escapeHtml(slot)}</span>
+                    <h3 class="text-xl font-bold leading-tight text-slate-800">${escapeHtml(item.primername)}</h3>
                 </div>
                 <div class="text-right">
-                    <span class="block text-2xl font-bold text-brand-600">${item.volume}</span>
+                    <span class="block text-2xl font-bold text-brand-600">${escapeHtml(item.volume)}</span>
                     <span class="text-[10px] uppercase font-bold text-slate-400">Microliters</span>
                 </div>
             </div>
             <div class="grid grid-cols-2 gap-2 border-t pt-4">
-                 <div class="bg-slate-50 p-2 rounded-lg border"><span class="block text-[9px] text-slate-400 uppercase">Type</span><span class="font-bold text-xs">${item.itemtype}</span></div>
-                 <div class="bg-slate-50 p-2 rounded-lg border"><span class="block text-[9px] text-slate-400 uppercase">Species</span><span class="font-bold text-xs">${item.species || '-'}</span></div>
-                 <div class="bg-slate-50 p-2 rounded-lg border"><span class="block text-[9px] text-slate-400 uppercase">Storage Room</span><span class="font-bold text-xs">${item.storageroom || '-'}</span></div>
-                 <div class="bg-slate-50 p-2 rounded-lg border"><span class="block text-[9px] text-slate-400 uppercase">Refrigerator / Freezer</span><span class="font-bold text-xs">${item.storagefridge || '-'}</span></div>
+                 <div class="bg-slate-50 p-2 rounded-lg border"><span class="block text-[9px] text-slate-400 uppercase">Type</span><span class="font-bold text-xs">${escapeHtml(item.itemtype)}</span></div>
+                 <div class="bg-slate-50 p-2 rounded-lg border"><span class="block text-[9px] text-slate-400 uppercase">Species</span><span class="font-bold text-xs">${escapeHtml(item.species || '-')}</span></div>
+                 <div class="bg-slate-50 p-2 rounded-lg border"><span class="block text-[9px] text-slate-400 uppercase">Storage Room</span><span class="font-bold text-xs">${escapeHtml(item.storageroom || '-')}</span></div>
+                 <div class="bg-slate-50 p-2 rounded-lg border"><span class="block text-[9px] text-slate-400 uppercase">Refrigerator / Freezer</span><span class="font-bold text-xs">${escapeHtml(item.storagefridge || '-')}</span></div>
             </div>
-            <button onclick="showDetails('${item.id}')" class="w-full py-3 bg-slate-800 text-white rounded-xl text-xs font-bold uppercase hover:bg-slate-900 transition-colors">View Full Report</button>
+            <button onclick="showDetails(${jsArg(item.id)})" class="w-full py-3 bg-slate-800 text-white rounded-xl text-xs font-bold uppercase hover:bg-slate-900 transition-colors">View Full Report</button>
         </div>`;
     };
 
@@ -2553,7 +2601,7 @@
         Object.entries(map).forEach(([k, lid]) => {
             const list = document.getElementById(lid); if (!list) return;
             const u = [...new Set(items.map(i => i[k]))].filter(Boolean).sort();
-            list.innerHTML = u.map(val => `<option value="${val}">`).join('');
+            list.innerHTML = u.map(val => `<option value="${escapeHtml(val)}">`).join('');
         });
 
         // อัปเดต Dropdown Filters ของตารางให้มีข้อมูลตามที่มีในระบบจริง
@@ -2566,7 +2614,7 @@
             // ดึงค่าไม่ซ้ำจากข้อมูล
             const u = [...new Set(items.map(i => i[k]))].filter(Boolean).sort();
             let html = `<option value="">${defaultText[k]}</option>`;
-            html += u.map(val => `<option value="${val}">${val}</option>`).join('');
+            html += u.map(val => `<option value="${escapeHtml(val)}">${escapeHtml(val)}</option>`).join('');
             sel.innerHTML = html;
             sel.value = currentVal; 
         });
@@ -2592,16 +2640,16 @@
 
         const rooms = [...new Set(located.map(i => i.storageroom).filter(Boolean))].sort();
         const room = rooms.includes(prevRoom) ? prevRoom : '';
-        if(roomSel) { roomSel.innerHTML = '<option value="">All Rooms</option>' + rooms.map(r => `<option value="${r}">${r}</option>`).join(''); roomSel.value = room; }
+        if(roomSel) { roomSel.innerHTML = '<option value="">All Rooms</option>' + rooms.map(r => `<option value="${escapeHtml(r)}">${escapeHtml(r)}</option>`).join(''); roomSel.value = room; }
 
         const inRoom = located.filter(i => !room || i.storageroom === room);
         const fridges = [...new Set(inRoom.map(i => i.storagefridge).filter(Boolean))].sort();
         const fridge = fridges.includes(prevFridge) ? prevFridge : '';
-        if(fridgeSel) { fridgeSel.innerHTML = '<option value="">All Refrigerators / Freezers</option>' + fridges.map(f => `<option value="${f}">${f}</option>`).join(''); fridgeSel.value = fridge; }
+        if(fridgeSel) { fridgeSel.innerHTML = '<option value="">All Refrigerators / Freezers</option>' + fridges.map(f => `<option value="${escapeHtml(f)}">${escapeHtml(f)}</option>`).join(''); fridgeSel.value = fridge; }
 
         const boxes = [...new Set(inRoom.filter(i => !fridge || i.storagefridge === fridge).map(i => i.box))].sort();
         if(sel) {
-            sel.innerHTML = boxes.map(b => `<option value="${b}">${b}</option>`).join('') || '<option value="">- No Boxes -</option>';
+            sel.innerHTML = boxes.map(b => `<option value="${escapeHtml(b)}">${escapeHtml(b)}</option>`).join('') || '<option value="">- No Boxes -</option>';
             if(boxes.includes(prevBox)) sel.value = prevBox;
         }
     };
@@ -2630,7 +2678,7 @@
     };
 
     const plural = (n, word) => `${n} ${word}${n === 1 ? '' : (word === 'box' ? 'es' : 's')}`;
-    const escapeBoxText = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+    const escapeBoxText = s => escapeHtml(s);
 
     // รายชื่อกล่องของโหมดปัจจุบัน (เงื่อนไขกรองโหมดเดียวกับ updateBoxOptions) รวมชื่อที่ต่างกันแค่ตัวพิมพ์เป็นกล่องเดียว
     const getBoxLocationGroups = function() {
@@ -2749,7 +2797,7 @@
         }
         btn.disabled = false;
 
-        // log เดียวต่อการกด 1 ครั้ง (ID ของ log ตั้งจากวินาที ถ้าเรียกหลายครั้งจะเขียนทับกัน)
+        // log เดียวต่อการกด 1 ครั้ง (สรุปทุกกล่องไว้ใน log เดียว อ่านง่ายกว่าแยก log ต่อกล่อง; ID ของ log มีตัวอักษรสุ่มต่อท้ายแล้ว จึงไม่เขียนทับกัน)
         const details = [];
         if (room) details.push(`Set Storage Room: ${room}`);
         if (fridge) details.push(`Set Refrigerator / Freezer: ${fridge}`);
@@ -2770,13 +2818,24 @@
     window.formatDateOnly = function(d) { if(!d) return '-'; const date = new Date(d); return `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear()}`; };
     window.formatDateFull = function(d) { if(!d) return '-'; const date = new Date(d); return `${String(date.getDate()).padStart(2,'0')}/${String(date.getMonth()+1).padStart(2,'0')}/${date.getFullYear() } ${String(date.getHours()).padStart(2,'0')}:${String(date.getMinutes()).padStart(2,'0')}`; };
     
-    window.showToast = function(m, t) { 
+    window.showToast = function(m, t) {
         const overlay = document.createElement('div');
         overlay.className = "fixed top-6 right-6 z-[10000] animate-in slide-in-from-right-10 fade-in duration-300";
+        // inline style ให้แสดงถูกแม้อยู่นอก #wp-lab-app-container (ก่อนล็อกอิน คลาส Tailwind ใช้ไม่ได้) ค่าตรงกับคลาสเดิม
+        overlay.style.cssText = "position: fixed; top: 1.5rem; right: 1.5rem; z-index: 10000;";
         const el = document.createElement('div');
         el.className = `${t==='success'?'bg-emerald-600':'bg-red-600'} text-white px-6 py-4 rounded-xl shadow-2xl font-medium text-sm flex items-center gap-3 min-w-[300px]`;
-        const icon = t==='success' ? '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>' : '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
-        el.innerHTML = `${icon} <div>${m}</div>`;
+        el.style.cssText = `background-color: ${t==='success'?'#059669':'#dc2626'}; color: #ffffff; padding: 1rem 1.5rem; border-radius: 0.75rem; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25); font-family: 'Prompt', sans-serif; font-weight: 500; font-size: 0.875rem; line-height: 1.25rem; display: flex; align-items: center; gap: 0.75rem; min-width: 300px; box-sizing: border-box;`;
+        // จอแคบกว่า 640px: แสดงด้านล่างจอ กว้างเต็ม
+        if (!window.matchMedia('(min-width: 640px)').matches) {
+            overlay.style.cssText = "position: fixed; top: auto; bottom: 1rem; left: 1rem; right: 1rem; z-index: 10000;";
+            el.style.minWidth = '0';
+            el.style.width = '100%';
+        }
+        const iconStyle = 'style="width: 1.25rem; height: 1.25rem; flex-shrink: 0;"';
+        const icon = t==='success' ? `<svg class="w-5 h-5" ${iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>` : `<svg class="w-5 h-5" ${iconStyle} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>`;
+        // escape ข้อความทั้งก้อน แล้วคืนเฉพาะ <br> (ใช้ในข้อความแจ้งช่องที่กรอกไม่ครบ)
+        el.innerHTML = `${icon} <div>${escapeHtml(m).replace(/&lt;br&gt;/g, '<br>')}</div>`;
         overlay.appendChild(el);
         
         const container = document.getElementById('wp-lab-app-container');
@@ -2800,6 +2859,14 @@
     window.nextPage = function() { if(currentPage < Math.ceil(filteredList.length / rowsPerPage)) { currentPage++; displayCurrentPage(); } };
     window.changeRowsPerPage = function() { rowsPerPage = parseInt(document.getElementById('rowsPerPageSelect').value); currentPage = 1; displayCurrentPage(); };
     
+    // ลิงก์ไฟล์แนบ: ใช้ได้เฉพาะ data: URL ที่ไม่ใช่ชนิดที่รันสคริปต์ได้ ไม่งั้นคืน null (แสดงเป็นข้อความ)
+    const BLOCKED_ATTACHMENT_MIME = ['text/html', 'application/xhtml+xml', 'image/svg+xml', 'text/xml', 'application/xml', 'text/javascript', 'application/javascript'];
+    function safeAttachmentHref(value) {
+        if (typeof value !== 'string' || !value.startsWith('data:')) return null;
+        const mime = value.slice(5).split(/[;,]/)[0].trim().toLowerCase();
+        return BLOCKED_ATTACHMENT_MIME.includes(mime) ? null : value;
+    }
+
     window.showDetails = function(id) {
         const item = dataList.find(d => d.id === id); if(!item) return;
         
@@ -2822,13 +2889,13 @@
                 slotDetailHtml += `
                     <div class="bg-white p-3 rounded-lg border border-slate-200 shadow-sm">
                         <div class="flex justify-between items-center mb-2">
-                            <span class="font-bold text-slate-800 text-sm">${s.trim()}</span>
+                            <span class="font-bold text-slate-800 text-sm">${escapeHtml(s.trim())}</span>
                             <span class="text-[9px] bg-slate-100 px-1.5 rounded text-slate-500">SLOT</span>
                         </div>
                         <div class="text-[10px] space-y-1">
-                            <div class="flex justify-between text-slate-500"><span>Initial:</span> <span class="font-mono font-bold">${init}</span></div>
-                            <div class="flex justify-between text-brand-600"><span>Current:</span> <span class="font-mono font-bold">${vol}</span></div>
-                            <div class="flex justify-between text-amber-600"><span>Used:</span> <span class="font-mono font-bold">${use} times</span></div>
+                            <div class="flex justify-between text-slate-500"><span>Initial:</span> <span class="font-mono font-bold">${escapeHtml(init)}</span></div>
+                            <div class="flex justify-between text-brand-600"><span>Current:</span> <span class="font-mono font-bold">${escapeHtml(vol)}</span></div>
+                            <div class="flex justify-between text-amber-600"><span>Used:</span> <span class="font-mono font-bold">${escapeHtml(use)} times</span></div>
                         </div>
                     </div>
                 `;
@@ -2842,19 +2909,20 @@
         
         let content = Object.entries(labels).map(([k, lbl]) => {
             let val = item[k];
-            if (k === 'orderdate') val = formatDateFull(val);
+            if (k === 'orderdate') val = formatDateOnly(val);
             else if (val === undefined || val === null || val === '') val = '-';
             if (['forward', 'reward', 'probe'].includes(k) && val !== '-') {
                 let cleanVal = String(val).replace(/<[^>]*>?/gm, '').replace(/^5'?-?/i, '').replace(/-?3'?$/i, '');
-                val = `<div class="break-all font-mono text-xs" style="color:#1e293b;">${val}</div><div class="mt-1"><span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-bold border border-slate-200">${cleanVal.length} bp.</span></div>`;
+                val = `<div class="break-all font-mono text-xs" style="color:#1e293b;">${escapeHtml(val)}</div><div class="mt-1"><span class="inline-block px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 text-[9px] font-bold border border-slate-200">${cleanVal.length} bp.</span></div>`;
             } else if (k === 'attachmentname' && val !== '-') {
-                if (item.attachmentbase64) {
-                    val = `<div class="font-medium underline truncate" style="color:#0284c7;"><a href="${item.attachmentbase64}" download="${val}">${val}</a></div>`;
+                const safeHref = safeAttachmentHref(item.attachmentbase64);
+                if (safeHref) {
+                    val = `<div class="font-medium underline truncate" style="color:#0284c7;"><a href="${escapeHtml(safeHref)}" download="${escapeHtml(val)}">${escapeHtml(val)}</a></div>`;
                 } else {
-                    val = `<div class="font-medium" style="color:#1e293b;">${val}</div>`;
+                    val = `<div class="font-medium" style="color:#1e293b;">${escapeHtml(val)}</div>`;
                 }
             } else {
-                val = `<div class="font-medium" style="color:#1e293b;">${val}</div>`;
+                val = `<div class="font-medium" style="color:#1e293b;">${escapeHtml(val)}</div>`;
             }
             return `<div class="p-3 bg-white rounded-xl border border-slate-100 shadow-sm overflow-hidden flex flex-col justify-center min-h-[64px]"><span class="text-[10px] font-bold text-slate-400 uppercase tracking-wide block mb-1">${lbl}</span>${val}</div>`;
         }).join('');
@@ -2864,7 +2932,7 @@
         content += `<div class="p-4 bg-slate-50 rounded-xl border border-slate-200 col-span-1 md:col-span-2 lg:col-span-3 flex flex-col items-center justify-center mt-2">
             <span class="text-xs font-bold text-slate-600 mb-2">Item QR Code</span>
             <div id="qrcode-box" class="bg-white p-2 rounded-lg border shadow-sm"></div>
-            <span class="text-[10px] text-slate-400 mt-2 font-mono">${item.id}</span>
+            <span class="text-[10px] text-slate-400 mt-2 font-mono">${escapeHtml(item.id)}</span>
         </div>`;
 
         document.getElementById('modalContent').innerHTML = content;
@@ -2883,10 +2951,11 @@
 
     window.closeModal = function() { document.getElementById('detailModal').classList.add('hidden'); };
     
-    window.openDeleteModal = function(id, name) { 
+    window.openDeleteModal = function(id) { 
         const item = dataList.find(d => d.id === id); if(!item) return;
-        const targetCollection = (item.itemtype === 'DNA' || item.itemtype === 'cDNA') ? DNA_COLLECTION : COLLECTION_NAME;
-        document.getElementById('deleteItemName').innerText = name; 
+        const name = item.primername;
+        const targetCollection = collectionOf(item);
+        document.getElementById('deleteItemName').innerText = name;
         document.getElementById('deleteModal').classList.remove('hidden'); document.getElementById('deleteModal').classList.add('flex'); 
         document.getElementById('confirmDeleteBtn').onclick = async () => { 
             try {
@@ -3086,13 +3155,16 @@
 
     window.fetchAdminUsers = function() {
         if (currentUserRole !== 'superadmin') return;
-        onSnapshot(collection(db, 'users'), (snapshot) => {
+        if (unsubscribeAdminUsers) unsubscribeAdminUsers();
+        unsubscribeAdminUsers = onSnapshot(collection(db, 'users'), (snapshot) => {
             const tbody = document.getElementById('adminUserTableBody');
             if (!tbody) return;
             let html = '';
+            const usersMap = {};
             snapshot.forEach(doc => {
                 const user = doc.data();
                 const email = doc.id;
+                usersMap[email] = user;
                 let roleBadge = '<span class="bg-slate-100 text-slate-600 px-2 py-1 rounded font-bold border border-slate-200">User</span>';
                 if (user.role === 'superadmin') roleBadge = '<span class="bg-purple-100 text-purple-700 px-2 py-1 rounded font-bold border border-purple-200">Super Admin</span>';
                 else if (user.role === 'admin') roleBadge = '<span class="bg-brand-100 text-brand-700 px-2 py-1 rounded font-bold border border-brand-200">Admin</span>';
@@ -3100,23 +3172,26 @@
                 const nextRole = user.role === 'user' ? 'admin' : (user.role === 'admin' ? 'superadmin' : 'user');
                 
                 html += `<tr class="border-b border-slate-100 hover:bg-slate-50 transition-colors">
-                    <td class="px-4 py-3 font-mono text-[10px] text-slate-600">${email}</td>
-                    <td class="px-4 py-3 font-bold text-slate-800">${user.displayName || '-'}</td>
+                    <td class="px-4 py-3 font-mono text-[10px] text-slate-600">${escapeHtml(email)}</td>
+                    <td class="px-4 py-3 font-bold text-slate-800">${escapeHtml(user.displayName || '-')}</td>
                     <td class="px-4 py-3 text-center">${roleBadge}</td>
                     <td class="px-4 py-3 text-right">
-                        <button onclick="openEditUserModal('${email}', '${user.displayName || ''}', '${user.role}')" class="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-200 px-2 py-1 rounded hover:bg-indigo-100 mr-1 shadow-sm transition-all">แก้ไข</button>
-                        <button onclick="deleteUserAccount('${email}')" class="text-[10px] bg-red-50 text-red-600 border border-red-200 px-2 py-1 rounded hover:bg-red-100 shadow-sm transition-all">ลบ</button>
+                        <button onclick="openEditUserModal(${jsArg(email)})" class="text-[10px] bg-indigo-50 text-indigo-600 border border-indigo-200 px-2 py-1 rounded hover:bg-indigo-100 mr-1 shadow-sm transition-all">แก้ไข</button>
+                        <button onclick="deleteUserAccount(${jsArg(email)})" class="text-[10px] bg-red-50 text-red-600 border border-red-200 px-2 py-1 rounded hover:bg-red-100 shadow-sm transition-all">ลบ</button>
                     </td>
                 </tr>`;
             });
+            adminUsersMap = usersMap;
             tbody.innerHTML = html;
         });
     };
 
-    window.openEditUserModal = function(email, name, role) {
+    window.openEditUserModal = function(email) {
+        const user = adminUsersMap[email]; if (!user) return;
         document.getElementById('editUserEmail').value = email;
-        document.getElementById('edituserName').value = name;
-        document.getElementById('editUserRole').value = role;
+        document.getElementById('edituserName').value = user.displayName || '';
+        // ผู้ใช้เก่าที่ไม่มี role (หรือค่าไม่ถูกต้อง) ให้เริ่มที่ user แทน select ว่าง
+        document.getElementById('editUserRole').value = ['user', 'admin', 'superadmin'].includes(user.role) ? user.role : 'user';
         document.getElementById('editUserModal').classList.remove('hidden');
         document.getElementById('editUserModal').classList.add('flex');
     };
